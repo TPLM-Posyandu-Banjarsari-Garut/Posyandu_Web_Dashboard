@@ -1,0 +1,24 @@
+import { z } from 'zod'
+
+export default z.object({
+    posyandu_id: z.string().min(1),
+    item_name: z.string().min(3).max(100),
+    item_type: z.enum(['vaccine', 'vitamin', 'general']).default('general'),
+    description: z.string().nullable().optional(),
+    quantity: z.number().int().gte(0).default(0),
+    unit: z.enum(['pcs', 'box', 'bottle', 'pack', 'set']).default('pcs'),
+    condition: z
+        .enum([
+            'good',
+            'minor_damage',
+            'major_damage',
+            'out_of_stock',
+            'under_repair'
+        ])
+        .default('good'),
+    batch_number: z.string().max(50).nullable().optional(),
+    expiry_date: z.string().date().optional(),
+    last_checked_date: z.string().date().optional(),
+    managed_by_midwife_id: z.string().nullable().optional(),
+    notes: z.string().nullable().optional()
+})

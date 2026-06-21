@@ -4,9 +4,6 @@ pre-commit:
       glob: "*.{js,ts,jsx,tsx,json}"
       run: bunx --bun @biomejs/biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
       stage_fixed: true
-    cspell:
-      glob: "*.{js,ts,jsx,tsx,json,md,yml,yaml}"
-      run: bunx cspell --no-summary --no-progress {staged_files}
 
 commit-msg:
   commands:

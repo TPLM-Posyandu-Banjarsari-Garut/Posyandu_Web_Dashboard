@@ -1,0 +1,28 @@
+import { z } from 'zod'
+
+export default z.object({
+    user_id: z.string().min(1).optional(),
+    identity_number: z.string().min(16).max(16).nullable().optional(),
+    place_of_birth: z.string().max(50).nullable().optional(),
+    date_of_birth: z.string().date().optional(),
+    blood_type: z
+        .union([
+            z.literal('A'),
+            z.literal('B'),
+            z.literal('AB'),
+            z.literal('O'),
+            z.literal('UNKNOWN'),
+            z.literal(null)
+        ])
+        .nullable()
+        .optional(),
+    education: z.string().max(50).nullable().optional(),
+    occupation: z.string().max(50).nullable().optional(),
+    address_line: z.string().nullable().optional(),
+    rt: z.string().max(5).nullable().optional(),
+    rw: z.string().max(5).nullable().optional(),
+    village_name: z.string().max(100).default('Banjarsari'),
+    status: z
+        .enum(['active', 'inactive', 'disabled', 'pending_verification'])
+        .default('active')
+})
