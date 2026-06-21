@@ -25,18 +25,21 @@ async function fetchSessionFromBackend(
     sessionToken: string
 ): Promise<SessionData | null> {
     try {
-        const response = await fetch(`${BACKEND_URL}/api/auth/get-session`, {
+        const response = await fetch(`${BACKEND_URL}/api/auth/me`, {
             headers: {
                 Cookie: `${SESSION_COOKIE_NAME}=${sessionToken}`
             },
             cache: 'no-store'
         })
 
-        if (!response.ok) return null
+        if (!response.ok) {
+            return null
+        }
 
-        const data = await response.json()
-        const user = data?.user
-        const session = data?.session
+        const resData = await response.json()
+        const sessionData = resData?.data || resData
+        const user = sessionData?.user
+        const session = sessionData?.session
 
         if (!user || !session || !ALLOWED_ROLES.has(user.role)) {
             return null
@@ -69,7 +72,7 @@ export async function checkSession(): Promise<SessionData> {
     const sessionToken = cookieStore.get(SESSION_COOKIE_NAME)?.value
 
     if (!sessionToken) {
-        redirect('/login')
+        redirect('/')
     }
 
     const redisKey = `dashboard:session:${sessionToken}`
@@ -81,7 +84,7 @@ export async function checkSession(): Promise<SessionData> {
 
     const sessionData = await fetchSessionFromBackend(sessionToken)
     if (!sessionData) {
-        redirect('/login')
+        redirect('/')
     }
 
     await cacheSession(redisKey, sessionData)

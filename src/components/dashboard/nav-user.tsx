@@ -30,7 +30,7 @@ export function NavUser() {
             await logout.mutateAsync()
         } catch (err) {
             console.error('Logout failed:', err)
-            globalThis.location.href = '/login'
+            globalThis.location.href = '/'
         }
     }
 

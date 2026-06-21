@@ -23,18 +23,21 @@ async function fetchAndCacheSession(
     redisKey: string
 ): Promise<boolean> {
     try {
-        const response = await fetch(`${BACKEND_URL}/api/auth/get-session`, {
+        const response = await fetch(`${BACKEND_URL}/api/auth/me`, {
             headers: {
                 Cookie: `${SESSION_COOKIE_NAME}=${sessionToken}`
             },
             cache: 'no-store'
         })
 
-        if (!response.ok) return false
+        if (!response.ok) {
+            return false
+        }
 
-        const data = await response.json()
-        const user = data?.user
-        const session = data?.session
+        const resData = await response.json()
+        const sessionData = resData?.data || resData
+        const user = sessionData?.user
+        const session = sessionData?.session
 
         if (!user || !session || !ALLOWED_ROLES.has(user.role)) {
             return false
@@ -58,30 +61,33 @@ async function fetchAndCacheSession(
 export async function proxy(req: NextRequest) {
     const { pathname } = req.nextUrl
 
-    if (!pathname.startsWith('/dashboard')) {
-        return NextResponse.next()
-    }
-
     const sessionToken = req.cookies.get(SESSION_COOKIE_NAME)?.value
-    if (!sessionToken) {
-        return NextResponse.redirect(new URL('/login', req.url))
+    let hasSession = false
+
+    if (sessionToken) {
+        const redisKey = `dashboard:session:${sessionToken}`
+        const isCachedValid = await checkCachedSession(redisKey)
+        if (isCachedValid) {
+            hasSession = true
+        } else {
+            hasSession = await fetchAndCacheSession(sessionToken, redisKey)
+        }
     }
 
-    const redisKey = `dashboard:session:${sessionToken}`
-
-    const isCachedValid = await checkCachedSession(redisKey)
-    if (isCachedValid) {
+    if (pathname === '/') {
+        if (hasSession) {
+            return NextResponse.redirect(new URL('/dashboard', req.url))
+        }
         return NextResponse.next()
     }
 
-    const isValid = await fetchAndCacheSession(sessionToken, redisKey)
-    if (!isValid) {
-        return NextResponse.redirect(new URL('/login', req.url))
+    if (!hasSession) {
+        return NextResponse.redirect(new URL('/', req.url))
     }
 
     return NextResponse.next()
 }
 
 export const config = {
-    matcher: ['/dashboard/:path*']
+    matcher: ['/', '/dashboard/:path*']
 }

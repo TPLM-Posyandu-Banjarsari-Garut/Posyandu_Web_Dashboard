@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { z } from 'zod'
-import { ALLOWED_ROLES, BACKEND_URL } from '@/constants/constants'
 import type { SessionData } from '@/types/auth-type'
 import type zodSignInInput from '@/validations/zod-SignInInput'
 
@@ -11,26 +10,22 @@ export function useSession() {
         queryKey: ['session'],
         queryFn: async () => {
             try {
-                const response = await fetch(
-                    `${BACKEND_URL}/api/auth/get-session`,
-                    {
-                        headers: {
-                            Accept: 'application/json'
-                        }
-                    }
-                )
+                const response = await fetch('/api/auth/session', {
+                    headers: {
+                        Accept: 'application/json'
+                    },
+                    credentials: 'include'
+                })
                 if (!response.ok) return null
                 const data = await response.json()
-                if (!data?.user || !ALLOWED_ROLES.has(data.user.role)) {
-                    return null
-                }
+                if (!data?.user) return null
                 return data
             } catch (err) {
                 console.error('Fetch session hook error:', err)
                 return null
             }
         },
-        staleTime: 5 * 60 * 1000 // 5 minutes cache
+        staleTime: 5 * 60 * 1000
     })
 }
 
@@ -39,40 +34,19 @@ export function useLogin() {
 
     return useMutation({
         mutationFn: async (credentials: LoginInput) => {
-            const response = await fetch(
-                `${BACKEND_URL}/api/auth/sign-in/email`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(credentials)
-                }
-            )
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(credentials),
+                credentials: 'include'
+            })
 
             const data = await response.json().catch(() => null)
 
             if (!response.ok) {
                 throw new Error(data?.message || 'Incorrect email or password.')
-            }
-
-            const user = data?.user
-            if (!user || !ALLOWED_ROLES.has(user.role)) {
-                const sessionToken = data?.token
-                const cookiesHeader = response.headers.get('set-cookie')
-
-                await fetch(`${BACKEND_URL}/api/auth/sign-out`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${sessionToken}`,
-                        Cookie: cookiesHeader || ''
-                    }
-                }).catch(err =>
-                    console.error('Signout failed for unauthorized user:', err)
-                )
-
-                throw new Error('UNAUTHORIZED_ROLE')
             }
 
             return data
@@ -88,8 +62,9 @@ export function useLogout() {
 
     return useMutation({
         mutationFn: async () => {
-            const response = await fetch(`${BACKEND_URL}/api/auth/sign-out`, {
-                method: 'POST'
+            const response = await fetch('/api/auth/logout', {
+                method: 'POST',
+                credentials: 'include'
             })
             if (!response.ok) {
                 throw new Error('Failed to log out.')
@@ -98,7 +73,7 @@ export function useLogout() {
         },
         onSuccess: () => {
             queryClient.setQueryData(['session'], null)
-            globalThis.location.href = '/login'
+            globalThis.location.href = '/'
         }
     })
 }

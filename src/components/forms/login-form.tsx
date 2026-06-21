@@ -34,8 +34,8 @@ export function LoginForm({
             setErrorMessage(null)
             try {
                 await login.mutateAsync(value)
-                toast.success('Login successful! Redirecting...')
                 router.push('/dashboard')
+                toast.success('Login successful! Redirecting...')
                 router.refresh()
             } catch (err) {
                 console.error('Login submission error:', err)

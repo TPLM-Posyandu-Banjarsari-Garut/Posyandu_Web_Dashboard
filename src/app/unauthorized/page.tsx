@@ -27,7 +27,7 @@ export default function UnauthorizedPage() {
             await logout.mutateAsync()
         } catch (err) {
             console.error('Logout cleanup failed:', err)
-            globalThis.location.href = '/login'
+            globalThis.location.href = '/'
         }
     }
 
