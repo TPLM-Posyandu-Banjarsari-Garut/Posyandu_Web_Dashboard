@@ -41,7 +41,9 @@ import { Input } from '@/components/ui/input'
 import {
     Pagination,
     PaginationContent,
+    PaginationEllipsis,
     PaginationItem,
+    PaginationLink,
     PaginationNext,
     PaginationPrevious
 } from '@/components/ui/pagination'
@@ -72,6 +74,7 @@ interface DataTableProps<TData, TValue> extends ServerPaginationProps {
     data: TData[]
     showPagination?: boolean
     isLoading?: boolean
+    isFetching?: boolean
     config?: DataTableConfig
     onRefresh?: () => void
     onDelete?: (selectedItems: TData[]) => void
@@ -82,6 +85,7 @@ export function DataTable<TData, TValue>({
     data,
     showPagination = true,
     isLoading = false,
+    isFetching = false,
     config = {},
     pageCount,
     pagination,
@@ -100,6 +104,7 @@ export function DataTable<TData, TValue>({
     const tableOptions = {
         data,
         columns,
+        autoResetPageIndex: false,
         state: {
             sorting,
             columnFilters,
@@ -185,16 +190,27 @@ export function DataTable<TData, TValue>({
             <TableRow
                 key={row.id}
                 data-state={row.getIsSelected() && 'selected'}
-                className='odd:bg-muted/30'
+                className='odd:bg-muted/30 group/row'
             >
-                {row.getVisibleCells().map(cell => (
-                    <TableCell key={cell.id}>
-                        {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                        )}
-                    </TableCell>
-                ))}
+                {row.getVisibleCells().map(cell => {
+                    const isSelectColumn = cell.column.id === 'select'
+                    return (
+                        <TableCell
+                            key={cell.id}
+                            className={cn(
+                                isSelectColumn &&
+                                    'sticky left-0 bg-background z-10 shadow-[2px_0_0_0_rgba(0,0,0,0.05)]',
+                                isSelectColumn &&
+                                    'group-odd/row:bg-muted/30 group-hover/row:bg-muted/50 group-data-[state=selected]/row:bg-muted'
+                            )}
+                        >
+                            {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext()
+                            )}
+                        </TableCell>
+                    )
+                })}
             </TableRow>
         ))
     }
@@ -208,6 +224,50 @@ export function DataTable<TData, TValue>({
             return <CaretDown className='ml-2 h-4 w-4 shrink-0' />
         }
         return <ArrowsDownUp className='ml-2 h-4 w-4 shrink-0 opacity-50' />
+    }
+
+    const getPageNumbers = () => {
+        const pages: { id: string; value: number | 'ellipsis' }[] = []
+        const currentPage = table.getState().pagination.pageIndex + 1
+        const totalPages = table.getPageCount()
+
+        const addPage = (val: number | 'ellipsis', index: number) => {
+            pages.push({
+                id: `page-${val}-${index}`,
+                value: val
+            })
+        }
+
+        if (totalPages <= 5) {
+            for (let i = 1; i <= totalPages; i++) {
+                addPage(i, i)
+            }
+        } else {
+            addPage(1, 1)
+
+            if (currentPage > 3) {
+                addPage('ellipsis', 2)
+            }
+
+            const start = Math.max(2, currentPage - 1)
+            const end = Math.min(totalPages - 1, currentPage + 1)
+
+            for (let i = start; i <= end; i++) {
+                // To avoid duplicate values in our custom page list
+                if (!pages.some(p => p.value === i)) {
+                    addPage(i, i)
+                }
+            }
+
+            if (currentPage < totalPages - 2) {
+                addPage('ellipsis', totalPages - 1)
+            }
+
+            if (!pages.some(p => p.value === totalPages)) {
+                addPage(totalPages, totalPages)
+            }
+        }
+        return pages
     }
 
     return (
@@ -240,7 +300,8 @@ export function DataTable<TData, TValue>({
                                 <ArrowClockwise
                                     className={cn(
                                         'h-4 w-4',
-                                        isLoading && 'animate-spin'
+                                        (isLoading || isFetching) &&
+                                            'animate-spin'
                                     )}
                                 />
                                 Refresh
@@ -332,8 +393,16 @@ export function DataTable<TData, TValue>({
                                         )
                                     }
 
+                                    const isSelectColumn =
+                                        header.column.id === 'select'
                                     return (
-                                        <TableHead key={header.id}>
+                                        <TableHead
+                                            key={header.id}
+                                            className={cn(
+                                                isSelectColumn &&
+                                                    'sticky left-0 bg-background z-20 shadow-[2px_0_0_0_rgba(0,0,0,0.05)]'
+                                            )}
+                                        >
                                             {renderHeaderContent()}
                                         </TableHead>
                                     )
@@ -345,7 +414,7 @@ export function DataTable<TData, TValue>({
                 </Table>
             </div>
 
-            {showPagination && table.getPageCount() > 1 && (
+            {showPagination && data.length > 0 && (
                 <div className='flex items-center justify-between py-4'>
                     <div className='flex items-center space-x-2 text-sm text-muted-foreground font-mono'>
                         <p>Rows per page</p>
@@ -399,6 +468,33 @@ export function DataTable<TData, TValue>({
                                         }
                                     />
                                 </PaginationItem>
+                                {getPageNumbers().map(pageItem => (
+                                    <PaginationItem key={pageItem.id}>
+                                        {pageItem.value === 'ellipsis' ? (
+                                            <PaginationEllipsis />
+                                        ) : (
+                                            <PaginationLink
+                                                href='#'
+                                                isActive={
+                                                    table.getState().pagination
+                                                        .pageIndex ===
+                                                    (pageItem.value as number) -
+                                                        1
+                                                }
+                                                onClick={e => {
+                                                    e.preventDefault()
+                                                    table.setPageIndex(
+                                                        (pageItem.value as number) -
+                                                            1
+                                                    )
+                                                }}
+                                                className='rounded-none cursor-pointer'
+                                            >
+                                                {pageItem.value}
+                                            </PaginationLink>
+                                        )}
+                                    </PaginationItem>
+                                ))}
                                 <PaginationItem>
                                     <PaginationNext
                                         href='#'

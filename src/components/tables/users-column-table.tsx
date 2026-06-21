@@ -2,6 +2,7 @@
 
 import { DotsThree, PencilSimple, Trash } from '@phosphor-icons/react'
 import type { ColumnDef } from '@tanstack/react-table'
+import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -14,6 +15,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
+import { useDeleteUser } from '@/hooks/use-users'
 
 export interface User {
     id: string
@@ -26,6 +28,57 @@ export interface User {
     status: 'active' | 'inactive' | 'disabled' | 'pending_verification'
     createdAt?: string
     updatedAt?: string
+}
+
+function ActionCell({ user }: { user: User }) {
+    const deleteMutation = useDeleteUser()
+
+    const handleDelete = async () => {
+        if (
+            globalThis.confirm(
+                `Are you sure you want to delete user "${user.name}"?`
+            )
+        ) {
+            try {
+                await deleteMutation.mutateAsync({ publicId: user.id })
+                toast.success(`Successfully deleted user "${user.name}"`)
+            } catch (err) {
+                const error = err as Error
+                toast.error(error.message || 'Failed to delete user')
+            }
+        }
+    }
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button
+                    variant='ghost'
+                    className='h-8 w-8 p-0'
+                    disabled={deleteMutation.isPending}
+                >
+                    <span className='sr-only'>Open menu</span>
+                    <DotsThree className='h-4 w-4' />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align='end' className='w-40 font-mono'>
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className='cursor-pointer flex items-center gap-2'>
+                    <PencilSimple className='h-4 w-4' />
+                    Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                    onClick={handleDelete}
+                    disabled={deleteMutation.isPending}
+                    className='cursor-pointer text-red-600 dark:text-red-400 flex items-center gap-2 focus:text-red-600'
+                >
+                    <Trash className='h-4 w-4' />
+                    Delete
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+    )
 }
 
 export const columns: ColumnDef<User>[] = [
@@ -154,29 +207,6 @@ export const columns: ColumnDef<User>[] = [
     },
     {
         id: 'actions',
-        cell: () => {
-            return (
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant='ghost' className='h-8 w-8 p-0'>
-                            <span className='sr-only'>Open menu</span>
-                            <DotsThree className='h-4 w-4' />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align='end' className='w-40 font-mono'>
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className='cursor-pointer flex items-center gap-2'>
-                            <PencilSimple className='h-4 w-4' />
-                            Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className='cursor-pointer text-red-600 dark:text-red-400 flex items-center gap-2 focus:text-red-600'>
-                            <Trash className='h-4 w-4' />
-                            Delete
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            )
-        }
+        cell: ({ row }) => <ActionCell user={row.original} />
     }
 ]
