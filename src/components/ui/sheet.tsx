@@ -6,9 +6,15 @@ import type * as React from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
-function Sheet({
-    ...props
-}: Readonly<React.ComponentProps<typeof SheetPrimitive.Root>>) {
+interface SheetProps {
+    children?: React.ReactNode
+    open?: boolean
+    defaultOpen?: boolean
+    onOpenChange?(open: boolean): void
+    modal?: boolean
+}
+
+function Sheet({ ...props }: Readonly<SheetProps>) {
     return <SheetPrimitive.Root data-slot='sheet' {...props} />
 }
 
@@ -26,7 +32,7 @@ function SheetClose({
 
 function SheetPortal({
     ...props
-}: React.ComponentProps<typeof SheetPrimitive.Portal>) {
+}: Readonly<React.ComponentProps<typeof SheetPrimitive.Portal>>) {
     return <SheetPrimitive.Portal data-slot='sheet-portal' {...props} />
 }
 
