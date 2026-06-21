@@ -478,8 +478,7 @@ export function DataTable<TData, TValue>({
                                                 isActive={
                                                     table.getState().pagination
                                                         .pageIndex ===
-                                                    (pageItem.value as number) -
-                                                        1
+                                                    pageItem.value - 1
                                                 }
                                                 onClick={e => {
                                                     e.preventDefault()

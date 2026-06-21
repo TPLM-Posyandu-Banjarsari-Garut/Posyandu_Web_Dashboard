@@ -58,7 +58,9 @@ export function useUsers(params?: {
             }
             const result = await response.json()
             return result.data
-        }
+        },
+        staleTime: 30 * 1000,
+        refetchInterval: 10 * 1000
     })
 }
 
@@ -75,6 +77,7 @@ export function useUserDetail(publicId: string) {
             }
             return response.json()
         },
+        staleTime: 5 * 60 * 1000,
         enabled: !!publicId
     })
 }
