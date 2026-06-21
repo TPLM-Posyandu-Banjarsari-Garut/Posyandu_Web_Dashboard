@@ -18,17 +18,10 @@ import {
     useSidebar
 } from '@/components/ui/sidebar'
 
-import { useLogout } from '@/hooks/user-auth'
+import { useLogout, useSession } from '@/hooks/use-auth'
 
-export function NavUser({
-    user
-}: Readonly<{
-    user: {
-        name: string
-        email: string
-        avatar: string
-    }
-}>) {
+export function NavUser() {
+    const { data: sessionData, isLoading } = useSession()
     const { isMobile } = useSidebar()
     const logout = useLogout()
 
@@ -37,10 +30,41 @@ export function NavUser({
             await logout.mutateAsync()
         } catch (err) {
             console.error('Logout failed:', err)
-            // Redirect anyway to avoid user stuck state
             globalThis.location.href = '/login'
         }
     }
+
+    if (isLoading) {
+        return (
+            <SidebarMenu>
+                <SidebarMenuItem>
+                    <SidebarMenuButton
+                        size='lg'
+                        className='pointer-events-none opacity-50'
+                    >
+                        <div className='h-8 w-8 rounded-lg bg-sidebar-foreground/10 animate-pulse' />
+                        <div className='grid flex-1 gap-1 text-left text-sm leading-tight'>
+                            <div className='h-4 w-20 rounded bg-sidebar-foreground/10 animate-pulse' />
+                            <div className='h-3 w-28 rounded bg-sidebar-foreground/10 animate-pulse' />
+                        </div>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+            </SidebarMenu>
+        )
+    }
+
+    const user = sessionData?.user
+    if (!user) return null
+
+    const name = user.name || 'Admin'
+    const email = user.email || ''
+    const avatar = user.image || ''
+    const initials = name
+        .split(' ')
+        .map(n => n[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase()
 
     return (
         <SidebarMenu>
@@ -52,20 +76,17 @@ export function NavUser({
                             className='data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground'
                         >
                             <Avatar className='h-8 w-8 rounded-lg'>
-                                <AvatarImage
-                                    src={user.avatar}
-                                    alt={user.name}
-                                />
+                                <AvatarImage src={avatar} alt={name} />
                                 <AvatarFallback className='rounded-lg'>
-                                    CN
+                                    {initials}
                                 </AvatarFallback>
                             </Avatar>
                             <div className='grid flex-1 text-left text-sm leading-tight'>
                                 <span className='truncate font-medium'>
-                                    {user.name}
+                                    {name}
                                 </span>
                                 <span className='truncate text-xs'>
-                                    {user.email}
+                                    {email}
                                 </span>
                             </div>
                             <CaretUpDownIcon className='ml-auto size-4' />
@@ -80,20 +101,17 @@ export function NavUser({
                         <DropdownMenuLabel className='p-0 font-normal'>
                             <div className='flex items-center gap-2 px-1 py-1.5 text-left text-sm'>
                                 <Avatar className='h-8 w-8 rounded-lg'>
-                                    <AvatarImage
-                                        src={user.avatar}
-                                        alt={user.name}
-                                    />
+                                    <AvatarImage src={avatar} alt={name} />
                                     <AvatarFallback className='rounded-lg'>
-                                        CN
+                                        {initials}
                                     </AvatarFallback>
                                 </Avatar>
                                 <div className='grid flex-1 text-left text-sm leading-tight'>
                                     <span className='truncate font-medium'>
-                                        {user.name}
+                                        {name}
                                     </span>
                                     <span className='truncate text-xs'>
-                                        {user.email}
+                                        {email}
                                     </span>
                                 </div>
                             </div>

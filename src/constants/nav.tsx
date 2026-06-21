@@ -9,11 +9,6 @@ import {
 } from '@phosphor-icons/react'
 
 export const data = {
-    user: {
-        name: 'Admin',
-        email: 'admin@posyandu.id',
-        avatar: '/avatars/admin.jpg'
-    },
     navMain: [
         {
             title: 'Master Data',

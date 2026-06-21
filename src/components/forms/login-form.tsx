@@ -13,7 +13,7 @@ import {
     Field as UIField
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { useLogin } from '@/hooks/user-auth'
+import { useLogin } from '@/hooks/use-auth'
 import { cn } from '@/lib/utils'
 import loginSchema from '@/validations/zod-SignInInput'
 
@@ -34,7 +34,7 @@ export function LoginForm({
             setErrorMessage(null)
             try {
                 await login.mutateAsync(value)
-                toast.success('Login berhasil! Mengalihkan...')
+                toast.success('Login successful! Redirecting...')
                 router.push('/dashboard')
                 router.refresh()
             } catch (err) {
@@ -49,7 +49,7 @@ export function LoginForm({
                 const message =
                     err instanceof Error
                         ? err.message
-                        : 'Terjadi kesalahan koneksi.'
+                        : 'A connection error occurred.'
                 setErrorMessage(message)
                 toast.error(message)
             }
@@ -172,7 +172,7 @@ export function LoginForm({
                         >
                             {([canSubmit, isSubmitting]) => (
                                 <Button type='submit' disabled={!canSubmit}>
-                                    {isSubmitting ? 'Memproses...' : 'Login'}
+                                    {isSubmitting ? 'Processing...' : 'Login'}
                                 </Button>
                             )}
                         </form.Subscribe>

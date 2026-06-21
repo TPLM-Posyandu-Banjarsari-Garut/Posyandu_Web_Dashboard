@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Spinner } from '@/components/ui/spinner'
-import { useLogout } from '@/hooks/user-auth'
+import { useLogout } from '@/hooks/use-auth'
 
 export default function UnauthorizedPage() {
     const logout = useLogout()

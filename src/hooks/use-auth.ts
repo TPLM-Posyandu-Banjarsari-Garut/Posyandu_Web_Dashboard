@@ -53,12 +53,11 @@ export function useLogin() {
             const data = await response.json().catch(() => null)
 
             if (!response.ok) {
-                throw new Error(data?.message || 'Email atau password salah.')
+                throw new Error(data?.message || 'Incorrect email or password.')
             }
 
             const user = data?.user
             if (!user || !ALLOWED_ROLES.has(user.role)) {
-                // If not an admin, immediately log out on the server
                 const sessionToken = data?.token
                 const cookiesHeader = response.headers.get('set-cookie')
 
@@ -93,7 +92,7 @@ export function useLogout() {
                 method: 'POST'
             })
             if (!response.ok) {
-                throw new Error('Gagal melakukan log-out.')
+                throw new Error('Failed to log out.')
             }
             return true
         },
