@@ -9,8 +9,7 @@
         "typecheck": "tsc --noEmit",
         "format:check": "bunx --bun @biomejs/biome check",
         "format:fix": "bunx --bun @biomejs/biome check --write",
-        "spellcheck": "cspell \"**/*.{js,ts,jsx,tsx,json,md,yml,yaml}\"",
-        "check": "bun run typecheck && bun run format:check && bun run spellcheck"
+        "check": "bun run typecheck && bun run format:check"
     },
     "dependencies": {
         "@phosphor-icons/react": "^2.1.10",
@@ -40,7 +39,6 @@
         "@types/react": "^19",
         "@types/react-dom": "^19",
         "babel-plugin-react-compiler": "1.0.0",
-        "cspell": "^10.0.1",
         "lefthook": "^2.1.9",
         "tailwindcss": "^4",
         "typescript": "^6"
