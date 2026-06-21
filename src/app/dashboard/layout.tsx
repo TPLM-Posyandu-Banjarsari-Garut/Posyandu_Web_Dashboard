@@ -16,7 +16,7 @@ export default async function DashboardLayout({
             <AppSidebar />
             <SidebarInset>
                 <Header />
-                <main className='flex-1 w-full px-4 py-6'>{children}</main>
+                <main className='flex-1 w-full px-6 py-6'>{children}</main>
             </SidebarInset>
         </SidebarProvider>
     )
