@@ -1,7 +1,9 @@
 'use client'
 
 import { useForm } from '@tanstack/react-form'
-import { z } from 'zod'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
     FieldDescription,
@@ -13,27 +15,48 @@ import {
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 
-const loginSchema = z.object({
-    email: z
-        .string()
-        .min(1, 'Email wajib diisi')
-        .email('Format email tidak valid'),
-    password: z.string().min(6, 'Password minimal 6 karakter')
-})
+import loginSchema from '@/validations/zod-SignInInput'
 
 export function LoginForm({
     className,
     ...props
 }: React.ComponentProps<'div'>) {
+    const router = useRouter()
+    const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
     const form = useForm({
         defaultValues: {
             email: '',
             password: ''
         },
         onSubmit: async ({ value }) => {
-            // Simulasi proses login
-            await new Promise(resolve => setTimeout(resolve, 1500))
-            console.log('Login berhasil:', value)
+            setErrorMessage(null)
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(value)
+                })
+
+                const data = await response.json()
+
+                if (!response.ok) {
+                    const message = data.message || 'Email atau password salah.'
+                    setErrorMessage(message)
+                    toast.error(message)
+                    return
+                }
+
+                toast.success('Login berhasil! Mengalihkan...')
+                router.push('/dashboard')
+                router.refresh()
+            } catch (err) {
+                console.error('Login submission error:', err)
+                setErrorMessage('Gagal menghubungi server. Silakan coba lagi.')
+                toast.error('Terjadi kesalahan koneksi.')
+            }
         }
     })
 
@@ -55,6 +78,12 @@ export function LoginForm({
                             Dashboard management for Sampurasun
                         </FieldDescription>
                     </div>
+
+                    {errorMessage && (
+                        <div className='p-3 text-sm text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-950/30 rounded-lg text-center font-medium border border-red-200 dark:border-red-900/50'>
+                            {errorMessage}
+                        </div>
+                    )}
 
                     <form.Field
                         name='email'

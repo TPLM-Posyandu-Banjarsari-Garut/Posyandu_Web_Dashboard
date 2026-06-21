@@ -1,12 +1,16 @@
 import { AppSidebar } from '@/components/dashboard/app-sidebar'
 import { Header } from '@/components/dashboard/header'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
+import { checkSession } from '@/lib/session'
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
     children
 }: Readonly<{
     children: React.ReactNode
 }>) {
+    // Secure the dashboard with server-side authentication and authorization
+    await checkSession()
+
     return (
         <SidebarProvider>
             <AppSidebar />
