@@ -6,6 +6,7 @@ import { Header } from '@/components/dashboard/header'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import QueryProvider from '@/providers/query-provider'
 
 const jetbrainsMono = JetBrains_Mono({
     subsets: ['latin'],
@@ -45,17 +46,19 @@ export default function RootLayout({
             )}
         >
             <body className='min-h-full flex flex-col'>
-                <TooltipProvider>
-                    <SidebarProvider>
-                        <AppSidebar />
-                        <SidebarInset>
-                            <Header />
-                            <main className='flex-1 w-full px-4 py-6'>
-                                {children}
-                            </main>
-                        </SidebarInset>
-                    </SidebarProvider>
-                </TooltipProvider>
+                <QueryProvider>
+                    <TooltipProvider>
+                        <SidebarProvider>
+                            <AppSidebar />
+                            <SidebarInset>
+                                <Header />
+                                <main className='flex-1 w-full px-4 py-6'>
+                                    {children}
+                                </main>
+                            </SidebarInset>
+                        </SidebarProvider>
+                    </TooltipProvider>
+                </QueryProvider>
             </body>
         </html>
     )
