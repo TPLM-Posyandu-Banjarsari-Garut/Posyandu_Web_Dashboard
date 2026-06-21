@@ -1,10 +1,12 @@
 'use client'
 
 import {
+    ArrowClockwise,
     ArrowsDownUp,
     CaretDown,
     CaretUp,
-    SlidersHorizontal
+    SlidersHorizontal,
+    Trash
 } from '@phosphor-icons/react'
 import {
     type Column,
@@ -59,6 +61,7 @@ import {
     TableHeader,
     TableRow
 } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
 import type {
     DataTableConfig,
     ServerPaginationProps
@@ -70,6 +73,8 @@ interface DataTableProps<TData, TValue> extends ServerPaginationProps {
     showPagination?: boolean
     isLoading?: boolean
     config?: DataTableConfig
+    onRefresh?: () => void
+    onDelete?: (selectedItems: TData[]) => void
 }
 
 export function DataTable<TData, TValue>({
@@ -80,7 +85,9 @@ export function DataTable<TData, TValue>({
     config = {},
     pageCount,
     pagination,
-    onPaginationChange
+    onPaginationChange,
+    onRefresh,
+    onDelete
 }: Readonly<DataTableProps<TData, TValue>>) {
     const [sorting, setSorting] = useState<SortingState>([])
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -88,6 +95,7 @@ export function DataTable<TData, TValue>({
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
         {}
     )
+    const [rowSelection, setRowSelection] = useState({})
 
     const tableOptions = {
         data,
@@ -97,8 +105,10 @@ export function DataTable<TData, TValue>({
             columnFilters,
             globalFilter,
             columnVisibility,
+            rowSelection,
             ...(config.serverSide && pagination ? { pagination } : {})
         },
+        onRowSelectionChange: setRowSelection,
         onSortingChange: config.enableSorting ? setSorting : undefined,
         onColumnFiltersChange: config.enableFiltering
             ? setColumnFilters
@@ -175,6 +185,7 @@ export function DataTable<TData, TValue>({
             <TableRow
                 key={row.id}
                 data-state={row.getIsSelected() && 'selected'}
+                className='odd:bg-muted/30'
             >
                 {row.getVisibleCells().map(cell => (
                     <TableCell key={cell.id}>
@@ -201,7 +212,9 @@ export function DataTable<TData, TValue>({
 
     return (
         <div className='space-y-4'>
-            {config.enableFiltering || config.enableColumnVisibility ? (
+            {config.enableFiltering ||
+            config.enableColumnVisibility ||
+            onRefresh ? (
                 <div className='flex items-center justify-between gap-4'>
                     {config.enableFiltering && (
                         <div className='flex flex-1 items-center max-w-sm relative'>
@@ -215,48 +228,67 @@ export function DataTable<TData, TValue>({
                             />
                         </div>
                     )}
-                    {config.enableColumnVisibility && (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button
-                                    variant='outline'
-                                    size='xs'
-                                    className='ml-auto rounded-none border border-input text-xs font-mono h-8 flex items-center gap-1.5 px-3'
-                                >
-                                    <SlidersHorizontal className='h-4 w-4' />
-                                    Columns
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                                align='end'
-                                className='w-44 rounded-none font-mono'
+                    <div className='flex items-center gap-2 ml-auto'>
+                        {onRefresh && (
+                            <Button
+                                variant='outline'
+                                size='xs'
+                                onClick={onRefresh}
+                                disabled={isLoading}
+                                className='rounded-none border border-input text-xs font-mono h-8 flex items-center gap-1.5 px-3'
                             >
-                                <DropdownMenuLabel>
-                                    Toggle Columns
-                                </DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                {table
-                                    .getAllColumns()
-                                    .filter(column => column.getCanHide())
-                                    .map(column => {
-                                        return (
-                                            <DropdownMenuCheckboxItem
-                                                key={column.id}
-                                                className='capitalize'
-                                                checked={column.getIsVisible()}
-                                                onCheckedChange={value =>
-                                                    column.toggleVisibility(
-                                                        !!value
-                                                    )
-                                                }
-                                            >
-                                                {column.id}
-                                            </DropdownMenuCheckboxItem>
-                                        )
-                                    })}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    )}
+                                <ArrowClockwise
+                                    className={cn(
+                                        'h-4 w-4',
+                                        isLoading && 'animate-spin'
+                                    )}
+                                />
+                                Refresh
+                            </Button>
+                        )}
+                        {config.enableColumnVisibility && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant='outline'
+                                        size='xs'
+                                        className='rounded-none border border-input text-xs font-mono h-8 flex items-center gap-1.5 px-3'
+                                    >
+                                        <SlidersHorizontal className='h-4 w-4' />
+                                        Columns
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                    align='end'
+                                    className='w-44 rounded-none font-mono'
+                                >
+                                    <DropdownMenuLabel>
+                                        Toggle Columns
+                                    </DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    {table
+                                        .getAllColumns()
+                                        .filter(column => column.getCanHide())
+                                        .map(column => {
+                                            return (
+                                                <DropdownMenuCheckboxItem
+                                                    key={column.id}
+                                                    className='capitalize'
+                                                    checked={column.getIsVisible()}
+                                                    onCheckedChange={value =>
+                                                        column.toggleVisibility(
+                                                            !!value
+                                                        )
+                                                    }
+                                                >
+                                                    {column.id}
+                                                </DropdownMenuCheckboxItem>
+                                            )
+                                        })}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
+                    </div>
                 </div>
             ) : null}
 
@@ -383,6 +415,38 @@ export function DataTable<TData, TValue>({
                                 </PaginationItem>
                             </PaginationContent>
                         </Pagination>
+                    </div>
+                </div>
+            )}
+
+            {table.getFilteredSelectedRowModel().rows.length > 0 && (
+                <div className='flex items-center justify-between border border-border bg-muted/60 p-4 font-mono text-sm shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300 rounded-none mt-4'>
+                    <div className='flex items-center gap-2'>
+                        <span className='font-bold text-foreground text-base'>
+                            {table.getFilteredSelectedRowModel().rows.length}
+                        </span>
+                        <span className='text-muted-foreground'>
+                            items selected
+                        </span>
+                    </div>
+                    <div>
+                        <Button
+                            variant='destructive'
+                            size='xs'
+                            onClick={() => {
+                                const selectedRows = table
+                                    .getFilteredSelectedRowModel()
+                                    .rows.map(row => row.original)
+                                if (onDelete) {
+                                    onDelete(selectedRows)
+                                }
+                                setRowSelection({})
+                            }}
+                            className='flex items-center gap-1.5 px-4 h-8 rounded-none'
+                        >
+                            <Trash className='h-4 w-4' />
+                            Move to Trash
+                        </Button>
                     </div>
                 </div>
             )}
