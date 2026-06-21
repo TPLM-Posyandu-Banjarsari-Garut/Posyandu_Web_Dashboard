@@ -1,0 +1,42 @@
+{
+  "name": "posyandu_web_dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "format:check": "bunx --bun @biomejs/biome check",
+    "format:fix": "bunx --bun @biomejs/biome check --write",
+    "spellcheck": "cspell \"**/*.{js,ts,jsx,tsx,json,md,yml,yaml}\"",
+    "check": "bun run typecheck && bun run format:check && bun run spellcheck"
+  },
+  "dependencies": {
+    "next": "16.2.9",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.2.0",
+    "@commitlint/cli": "^21.0.2",
+    "@commitlint/config-conventional": "^21.0.2",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "babel-plugin-react-compiler": "1.0.0",
+    "cspell": "^10.0.1",
+    "lefthook": "^2.1.9",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  },
+  "ignoreScripts": [
+    "sharp",
+    "unrs-resolver"
+  ],
+  "trustedDependencies": [
+    "sharp",
+    "unrs-resolver"
+  ]
+}

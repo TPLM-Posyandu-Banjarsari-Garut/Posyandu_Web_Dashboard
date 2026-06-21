@@ -1,0 +1,16 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "posyandu",
+    "bunx",
+    "commitlint",
+    "biomejs",
+    "tailwindcss",
+    "glassmorphism",
+    "unrs",
+    "logomark",
+    "nextjs"
+  ],
+  "ignorePaths": ["node_modules/**", ".next/**", "bun.lock"]
+}
