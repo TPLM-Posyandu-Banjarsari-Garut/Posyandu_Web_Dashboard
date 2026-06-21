@@ -1,24 +1,13 @@
-'use client'
+import { LoginForm } from '@/components/forms/login-form'
 
-import { useQuery } from '@tanstack/react-query'
-
-export default function Home() {
-    const { data, isPending, isError } = useQuery({
-        queryKey: ['hello'],
-        queryFn: async () => {
-            // Simulated API call
-            await new Promise(resolve => setTimeout(resolve, 1000))
-            return 'Data fetched with TanStack Query!'
-        }
-    })
-
-    if (isPending) return <p>Loading...</p>
-    if (isError) return <p>Error fetching data.</p>
-
+export default function LoginPage() {
     return (
-        <div className='space-y-4'>
-            <h1 className='text-2xl font-bold'>hello world</h1>
-            <p className='text-muted-foreground'>{data}</p>
+        <div className='relative flex min-h-svh flex-col items-center justify-center p-6 md:p-10'>
+            <div className='pointer-events-none absolute inset-0 -z-10 h-full w-full bg-background bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:bg-[radial-gradient(#27272a_1px,transparent_1px)] bg-size-[16px_16px] opacity-60'></div>
+
+            <div className='w-full max-w-md rounded-2xl bg-card p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border'>
+                <LoginForm />
+            </div>
         </div>
     )
 }

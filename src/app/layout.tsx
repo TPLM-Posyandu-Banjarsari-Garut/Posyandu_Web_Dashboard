@@ -1,9 +1,7 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono, JetBrains_Mono } from 'next/font/google'
 import '@/app/css/globals.css'
-import { AppSidebar } from '@/components/dashboard/app-sidebar'
-import { Header } from '@/components/dashboard/header'
-import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
+
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import QueryProvider from '@/providers/query-provider'
@@ -47,17 +45,7 @@ export default function RootLayout({
         >
             <body className='min-h-full flex flex-col'>
                 <QueryProvider>
-                    <TooltipProvider>
-                        <SidebarProvider>
-                            <AppSidebar />
-                            <SidebarInset>
-                                <Header />
-                                <main className='flex-1 w-full px-4 py-6'>
-                                    {children}
-                                </main>
-                            </SidebarInset>
-                        </SidebarProvider>
-                    </TooltipProvider>
+                    <TooltipProvider>{children}</TooltipProvider>
                 </QueryProvider>
             </body>
         </html>
