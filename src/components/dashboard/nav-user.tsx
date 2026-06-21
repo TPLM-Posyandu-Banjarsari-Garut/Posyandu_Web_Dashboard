@@ -1,13 +1,6 @@
 'use client'
 
-import {
-    BellIcon,
-    CaretUpDownIcon,
-    CheckCircleIcon,
-    CreditCardIcon,
-    SignOutIcon,
-    SparkleIcon
-} from '@phosphor-icons/react'
+import { CaretUpDownIcon, GearIcon, SignOutIcon } from '@phosphor-icons/react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
     DropdownMenu,
@@ -95,27 +88,12 @@ export function NavUser({
                         <DropdownMenuSeparator />
                         <DropdownMenuGroup>
                             <DropdownMenuItem>
-                                <SparkleIcon />
-                                Upgrade to Pro
+                                <GearIcon />
+                                Settings
                             </DropdownMenuItem>
                         </DropdownMenuGroup>
                         <DropdownMenuSeparator />
-                        <DropdownMenuGroup>
-                            <DropdownMenuItem>
-                                <CheckCircleIcon />
-                                Account
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                                <CreditCardIcon />
-                                Billing
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                                <BellIcon />
-                                Notifications
-                            </DropdownMenuItem>
-                        </DropdownMenuGroup>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem>
+                        <DropdownMenuItem className='text-red-600 focus:text-red-600 focus:bg-red-50 dark:text-red-400 dark:focus:text-red-400 dark:focus:bg-red-950/30'>
                             <SignOutIcon />
                             Log out
                         </DropdownMenuItem>
