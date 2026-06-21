@@ -4,6 +4,7 @@ import {
     Bell,
     BookOpen,
     Database,
+    House,
     Notebook,
     Stethoscope
 } from '@phosphor-icons/react'
@@ -11,17 +12,28 @@ import {
 export const data = {
     navMain: [
         {
+            title: 'Home',
+            url: '/dashboard',
+            icon: <House />
+        },
+        {
+            title: 'Notifications',
+            url: '/dashboard/notifications',
+            icon: <Bell />,
+            badge: 3
+        },
+        {
             title: 'Master Data',
             url: '#',
             icon: <Database />,
             isActive: true,
             items: [
-                { title: 'Posyandu', url: '/posyandus' },
-                { title: 'Users', url: '/users' },
-                { title: 'Midwives', url: '/midwifes' },
-                { title: 'Cadres', url: '/cadres' },
-                { title: 'Parents', url: '/parents' },
-                { title: 'Children', url: '/childrens' }
+                { title: 'Posyandu', url: '/dashboard/posyandus' },
+                { title: 'Users', url: '/dashboard/users' },
+                { title: 'Midwifes', url: '/dashboard/midwifes' },
+                { title: 'Cadres', url: '/dashboard/cadres' },
+                { title: 'Parents', url: '/dashboard/parents' },
+                { title: 'Children', url: '/dashboard/childrens' }
             ]
         },
         {
@@ -69,12 +81,6 @@ export const data = {
                 { title: 'Education Categories', url: '/education-categories' },
                 { title: 'Media', url: '/medias' }
             ]
-        },
-        {
-            title: 'Others',
-            url: '#',
-            icon: <Bell />,
-            items: [{ title: 'Notifications', url: '/notifications' }]
         }
     ]
 }

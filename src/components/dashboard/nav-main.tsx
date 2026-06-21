@@ -1,6 +1,7 @@
 'use client'
 
 import { CaretRightIcon } from '@phosphor-icons/react'
+import { Badge } from '@/components/ui/badge'
 import {
     Collapsible,
     CollapsibleContent,
@@ -25,6 +26,7 @@ export function NavMain({
         url: string
         icon?: React.ReactNode
         isActive?: boolean
+        badge?: string | number
         items?: {
             title: string
             url: string
@@ -35,37 +37,64 @@ export function NavMain({
         <SidebarGroup>
             <SidebarGroupLabel>Platform</SidebarGroupLabel>
             <SidebarMenu>
-                {items.map(item => (
-                    <Collapsible
-                        key={item.title}
-                        asChild
-                        defaultOpen={item.isActive}
-                        className='group/collapsible'
-                    >
-                        <SidebarMenuItem>
-                            <CollapsibleTrigger asChild>
-                                <SidebarMenuButton tooltip={item.title}>
-                                    {item.icon}
-                                    <span>{item.title}</span>
-                                    <CaretRightIcon className='ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90' />
+                {items.map(item => {
+                    const hasSubItems = item.items && item.items.length > 0
+                    if (!hasSubItems) {
+                        return (
+                            <SidebarMenuItem key={item.title}>
+                                <SidebarMenuButton asChild tooltip={item.title}>
+                                    <a
+                                        href={item.url}
+                                        className='flex items-center w-full'
+                                    >
+                                        {item.icon}
+                                        <span>{item.title}</span>
+                                        {item.badge !== undefined && (
+                                            <Badge className='ml-auto rounded-full group-data-[collapsible=icon]/sidebar-wrapper:hidden animate-pulse'>
+                                                {item.badge}
+                                            </Badge>
+                                        )}
+                                    </a>
                                 </SidebarMenuButton>
-                            </CollapsibleTrigger>
-                            <CollapsibleContent>
-                                <SidebarMenuSub>
-                                    {item.items?.map(subItem => (
-                                        <SidebarMenuSubItem key={subItem.title}>
-                                            <SidebarMenuSubButton asChild>
-                                                <a href={subItem.url}>
-                                                    <span>{subItem.title}</span>
-                                                </a>
-                                            </SidebarMenuSubButton>
-                                        </SidebarMenuSubItem>
-                                    ))}
-                                </SidebarMenuSub>
-                            </CollapsibleContent>
-                        </SidebarMenuItem>
-                    </Collapsible>
-                ))}
+                            </SidebarMenuItem>
+                        )
+                    }
+                    return (
+                        <Collapsible
+                            key={item.title}
+                            asChild
+                            defaultOpen={item.isActive}
+                            className='group/collapsible'
+                        >
+                            <SidebarMenuItem>
+                                <CollapsibleTrigger asChild>
+                                    <SidebarMenuButton tooltip={item.title}>
+                                        {item.icon}
+                                        <span>{item.title}</span>
+                                        <CaretRightIcon className='ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90' />
+                                    </SidebarMenuButton>
+                                </CollapsibleTrigger>
+                                <CollapsibleContent>
+                                    <SidebarMenuSub>
+                                        {item.items?.map(subItem => (
+                                            <SidebarMenuSubItem
+                                                key={subItem.title}
+                                            >
+                                                <SidebarMenuSubButton asChild>
+                                                    <a href={subItem.url}>
+                                                        <span>
+                                                            {subItem.title}
+                                                        </span>
+                                                    </a>
+                                                </SidebarMenuSubButton>
+                                            </SidebarMenuSubItem>
+                                        ))}
+                                    </SidebarMenuSub>
+                                </CollapsibleContent>
+                            </SidebarMenuItem>
+                        </Collapsible>
+                    )
+                })}
             </SidebarMenu>
         </SidebarGroup>
     )
