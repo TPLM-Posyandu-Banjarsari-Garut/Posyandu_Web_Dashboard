@@ -13,8 +13,8 @@ import {
     Field as UIField
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { useLogin } from '@/hooks/user-auth'
 import { cn } from '@/lib/utils'
-
 import loginSchema from '@/validations/zod-SignInInput'
 
 export function LoginForm({
@@ -23,6 +23,7 @@ export function LoginForm({
 }: React.ComponentProps<'div'>) {
     const router = useRouter()
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const login = useLogin()
 
     const form = useForm({
         defaultValues: {
@@ -32,30 +33,25 @@ export function LoginForm({
         onSubmit: async ({ value }) => {
             setErrorMessage(null)
             try {
-                const response = await fetch('/api/auth/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(value)
-                })
-
-                const data = await response.json()
-
-                if (!response.ok) {
-                    const message = data.message || 'Email atau password salah.'
-                    setErrorMessage(message)
-                    toast.error(message)
-                    return
-                }
-
+                await login.mutateAsync(value)
                 toast.success('Login berhasil! Mengalihkan...')
                 router.push('/dashboard')
                 router.refresh()
             } catch (err) {
                 console.error('Login submission error:', err)
-                setErrorMessage('Gagal menghubungi server. Silakan coba lagi.')
-                toast.error('Terjadi kesalahan koneksi.')
+                if (
+                    err instanceof Error &&
+                    err.message === 'UNAUTHORIZED_ROLE'
+                ) {
+                    router.push('/unauthorized')
+                    return
+                }
+                const message =
+                    err instanceof Error
+                        ? err.message
+                        : 'Terjadi kesalahan koneksi.'
+                setErrorMessage(message)
+                toast.error(message)
             }
         }
     })

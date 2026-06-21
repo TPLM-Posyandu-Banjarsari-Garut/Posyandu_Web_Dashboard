@@ -18,6 +18,8 @@ import {
     useSidebar
 } from '@/components/ui/sidebar'
 
+import { useLogout } from '@/hooks/user-auth'
+
 export function NavUser({
     user
 }: Readonly<{
@@ -28,14 +30,16 @@ export function NavUser({
     }
 }>) {
     const { isMobile } = useSidebar()
+    const logout = useLogout()
 
     const handleLogout = async () => {
         try {
-            await fetch('/api/auth/logout', { method: 'POST' })
+            await logout.mutateAsync()
         } catch (err) {
             console.error('Logout failed:', err)
+            // Redirect anyway to avoid user stuck state
+            globalThis.location.href = '/login'
         }
-        window.location.href = '/login'
     }
 
     return (

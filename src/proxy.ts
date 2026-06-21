@@ -13,7 +13,7 @@ async function checkCachedSession(redisKey: string): Promise<boolean> {
         const cached = await redis.get<{ user: { role: string } }>(redisKey)
         return !!(cached && ALLOWED_ROLES.has(cached.user.role))
     } catch (err) {
-        console.error('Middleware Redis read error:', err)
+        console.error('Proxy Redis read error:', err)
         return false
     }
 }
@@ -44,18 +44,18 @@ async function fetchAndCacheSession(
             try {
                 await redis.set(redisKey, { session, user }, { ex: 5 * 60 })
             } catch (err) {
-                console.error('Middleware Redis write error:', err)
+                console.error('Proxy Redis write error:', err)
             }
         }
 
         return true
     } catch (error) {
-        console.error('Middleware verification backend error:', error)
+        console.error('Proxy verification backend error:', error)
         return false
     }
 }
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
     const { pathname } = req.nextUrl
 
     if (!pathname.startsWith('/dashboard')) {
