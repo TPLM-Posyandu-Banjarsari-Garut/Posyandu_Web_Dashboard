@@ -1,18 +1,41 @@
 'use client'
 
 import {
+    ArrowsDownUp,
+    CaretDown,
+    CaretUp,
+    SlidersHorizontal
+} from '@phosphor-icons/react'
+import {
+    type Column,
     type ColumnDef,
+    type ColumnFiltersState,
     flexRender,
     getCoreRowModel,
+    getFilteredRowModel,
     getPaginationRowModel,
-    useReactTable
+    getSortedRowModel,
+    type SortingState,
+    useReactTable,
+    type VisibilityState
 } from '@tanstack/react-table'
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import {
+    DropdownMenu,
+    DropdownMenuCheckboxItem,
+    DropdownMenuContent,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu'
 import {
     Empty,
     EmptyDescription,
     EmptyHeader,
     EmptyTitle
 } from '@/components/ui/empty'
+import { Input } from '@/components/ui/input'
 import {
     Pagination,
     PaginationContent,
@@ -36,28 +59,80 @@ import {
     TableHeader,
     TableRow
 } from '@/components/ui/table'
+import type {
+    DataTableConfig,
+    ServerPaginationProps
+} from '@/types/data-table-types'
 
-interface DataTableProps<TData, TValue> {
+interface DataTableProps<TData, TValue> extends ServerPaginationProps {
     columns: ColumnDef<TData, TValue>[]
     data: TData[]
     showPagination?: boolean
     isLoading?: boolean
+    config?: DataTableConfig
 }
 
 export function DataTable<TData, TValue>({
     columns,
     data,
     showPagination = true,
-    isLoading = false
+    isLoading = false,
+    config = {},
+    pageCount,
+    pagination,
+    onPaginationChange
 }: Readonly<DataTableProps<TData, TValue>>) {
-    const table = useReactTable({
+    const [sorting, setSorting] = useState<SortingState>([])
+    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+    const [globalFilter, setGlobalFilter] = useState('')
+    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
+        {}
+    )
+
+    const tableOptions = {
         data,
         columns,
+        state: {
+            sorting,
+            columnFilters,
+            globalFilter,
+            columnVisibility,
+            ...(config.serverSide && pagination ? { pagination } : {})
+        },
+        onSortingChange: config.enableSorting ? setSorting : undefined,
+        onColumnFiltersChange: config.enableFiltering
+            ? setColumnFilters
+            : undefined,
+        onGlobalFilterChange: config.enableFiltering
+            ? setGlobalFilter
+            : undefined,
+        onColumnVisibilityChange: config.enableColumnVisibility
+            ? setColumnVisibility
+            : undefined,
+
         getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: showPagination
-            ? getPaginationRowModel()
+
+        ...(config.serverSide
+            ? {
+                  manualPagination: true,
+                  pageCount: pageCount ?? -1,
+                  onPaginationChange: onPaginationChange
+              }
+            : {
+                  getPaginationRowModel: showPagination
+                      ? getPaginationRowModel()
+                      : undefined
+              }),
+
+        getSortedRowModel: config.enableSorting
+            ? getSortedRowModel()
+            : undefined,
+        getFilteredRowModel: config.enableFiltering
+            ? getFilteredRowModel()
             : undefined
-    })
+    }
+
+    const table = useReactTable(tableOptions)
 
     const renderTableBody = () => {
         if (isLoading) {
@@ -113,23 +188,121 @@ export function DataTable<TData, TValue>({
         ))
     }
 
+    const renderSortIcon = (column: Column<TData, unknown>) => {
+        const sortedState = column.getIsSorted()
+        if (sortedState === 'asc') {
+            return <CaretUp className='ml-2 h-4 w-4 shrink-0' />
+        }
+        if (sortedState === 'desc') {
+            return <CaretDown className='ml-2 h-4 w-4 shrink-0' />
+        }
+        return <ArrowsDownUp className='ml-2 h-4 w-4 shrink-0 opacity-50' />
+    }
+
     return (
         <div className='space-y-4'>
+            {config.enableFiltering || config.enableColumnVisibility ? (
+                <div className='flex items-center justify-between gap-4'>
+                    {config.enableFiltering && (
+                        <div className='flex flex-1 items-center max-w-sm relative'>
+                            <Input
+                                placeholder='Search all columns...'
+                                value={globalFilter}
+                                onChange={event =>
+                                    setGlobalFilter(event.target.value)
+                                }
+                                className='w-full'
+                            />
+                        </div>
+                    )}
+                    {config.enableColumnVisibility && (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    variant='outline'
+                                    size='xs'
+                                    className='ml-auto rounded-none border border-input text-xs font-mono h-8 flex items-center gap-1.5 px-3'
+                                >
+                                    <SlidersHorizontal className='h-4 w-4' />
+                                    Columns
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                                align='end'
+                                className='w-44 rounded-none font-mono'
+                            >
+                                <DropdownMenuLabel>
+                                    Toggle Columns
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {table
+                                    .getAllColumns()
+                                    .filter(column => column.getCanHide())
+                                    .map(column => {
+                                        return (
+                                            <DropdownMenuCheckboxItem
+                                                key={column.id}
+                                                className='capitalize'
+                                                checked={column.getIsVisible()}
+                                                onCheckedChange={value =>
+                                                    column.toggleVisibility(
+                                                        !!value
+                                                    )
+                                                }
+                                            >
+                                                {column.id}
+                                            </DropdownMenuCheckboxItem>
+                                        )
+                                    })}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    )}
+                </div>
+            ) : null}
+
             <div className='border border-border bg-card text-card-foreground shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-500'>
                 <Table>
                     <TableHeader>
                         {table.getHeaderGroups().map(headerGroup => (
                             <TableRow key={headerGroup.id}>
                                 {headerGroup.headers.map(header => {
+                                    const canSort =
+                                        header.column.getCanSort() &&
+                                        config.enableSorting
+
+                                    const renderHeaderContent = () => {
+                                        if (header.isPlaceholder) {
+                                            return null
+                                        }
+
+                                        if (canSort) {
+                                            return (
+                                                <button
+                                                    type='button'
+                                                    onClick={header.column.getToggleSortingHandler()}
+                                                    className='flex items-center hover:text-foreground text-left cursor-pointer select-none font-mono'
+                                                >
+                                                    {flexRender(
+                                                        header.column.columnDef
+                                                            .header,
+                                                        header.getContext()
+                                                    )}
+                                                    {renderSortIcon(
+                                                        header.column
+                                                    )}
+                                                </button>
+                                            )
+                                        }
+
+                                        return flexRender(
+                                            header.column.columnDef.header,
+                                            header.getContext()
+                                        )
+                                    }
+
                                     return (
                                         <TableHead key={header.id}>
-                                            {header.isPlaceholder
-                                                ? null
-                                                : flexRender(
-                                                      header.column.columnDef
-                                                          .header,
-                                                      header.getContext()
-                                                  )}
+                                            {renderHeaderContent()}
                                         </TableHead>
                                     )
                                 })}
@@ -140,10 +313,9 @@ export function DataTable<TData, TValue>({
                 </Table>
             </div>
 
-            {/* Pagination Controls */}
             {showPagination && table.getPageCount() > 1 && (
                 <div className='flex items-center justify-between py-4'>
-                    <div className='flex items-center space-x-2 text-sm text-muted-foreground'>
+                    <div className='flex items-center space-x-2 text-sm text-muted-foreground font-mono'>
                         <p>Rows per page</p>
                         <Select
                             value={`${table.getState().pagination.pageSize}`}
@@ -151,14 +323,17 @@ export function DataTable<TData, TValue>({
                                 table.setPageSize(Number(value))
                             }}
                         >
-                            <SelectTrigger className='h-8 w-[70px]'>
+                            <SelectTrigger className='h-8 w-[70px] rounded-none'>
                                 <SelectValue
                                     placeholder={
                                         table.getState().pagination.pageSize
                                     }
                                 />
                             </SelectTrigger>
-                            <SelectContent side='top'>
+                            <SelectContent
+                                side='top'
+                                className='rounded-none font-mono'
+                            >
                                 {[10, 20, 30, 40, 50].map(pageSize => (
                                     <SelectItem
                                         key={pageSize}
@@ -171,7 +346,7 @@ export function DataTable<TData, TValue>({
                         </Select>
                     </div>
 
-                    <div className='flex flex-1 items-center justify-end space-x-6 lg:space-x-8'>
+                    <div className='flex flex-1 items-center justify-end space-x-6 lg:space-x-8 font-mono'>
                         <div className='flex w-[100px] items-center justify-center text-sm font-medium'>
                             Page {table.getState().pagination.pageIndex + 1} of{' '}
                             {table.getPageCount()}
@@ -187,8 +362,8 @@ export function DataTable<TData, TValue>({
                                         }}
                                         className={
                                             table.getCanPreviousPage()
-                                                ? 'cursor-pointer'
-                                                : 'pointer-events-none opacity-50'
+                                                ? 'cursor-pointer rounded-none'
+                                                : 'pointer-events-none opacity-50 rounded-none'
                                         }
                                     />
                                 </PaginationItem>
@@ -201,8 +376,8 @@ export function DataTable<TData, TValue>({
                                         }}
                                         className={
                                             table.getCanNextPage()
-                                                ? 'cursor-pointer'
-                                                : 'pointer-events-none opacity-50'
+                                                ? 'cursor-pointer rounded-none'
+                                                : 'pointer-events-none opacity-50 rounded-none'
                                         }
                                     />
                                 </PaginationItem>

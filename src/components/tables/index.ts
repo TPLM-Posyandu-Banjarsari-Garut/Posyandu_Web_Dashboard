@@ -1,1 +1,2 @@
-export * from './data-table'
+export * from '@/components/tables/data-table'
+export * from '@/types/data-table-types'
