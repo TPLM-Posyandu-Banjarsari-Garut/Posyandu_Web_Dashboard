@@ -8,6 +8,12 @@ import {
     useReactTable
 } from '@tanstack/react-table'
 import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyTitle
+} from '@/components/ui/empty'
+import {
     Pagination,
     PaginationContent,
     PaginationItem,
@@ -21,6 +27,7 @@ import {
     SelectTrigger,
     SelectValue
 } from '@/components/ui/select'
+import { Spinner } from '@/components/ui/spinner'
 import {
     Table,
     TableBody,
@@ -34,12 +41,14 @@ interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[]
     data: TData[]
     showPagination?: boolean
+    isLoading?: boolean
 }
 
 export function DataTable<TData, TValue>({
     columns,
     data,
-    showPagination = true
+    showPagination = true,
+    isLoading = false
 }: Readonly<DataTableProps<TData, TValue>>) {
     const table = useReactTable({
         data,
@@ -49,6 +58,60 @@ export function DataTable<TData, TValue>({
             ? getPaginationRowModel()
             : undefined
     })
+
+    const renderTableBody = () => {
+        if (isLoading) {
+            return (
+                <TableRow>
+                    <TableCell
+                        colSpan={columns.length}
+                        className='h-48 text-center'
+                    >
+                        <div className='flex w-full flex-col items-center justify-center gap-2'>
+                            <Spinner className='size-8 text-muted-foreground' />
+                            <p className='text-sm text-muted-foreground'>
+                                Loading data...
+                            </p>
+                        </div>
+                    </TableCell>
+                </TableRow>
+            )
+        }
+
+        if (!table.getRowModel().rows?.length) {
+            return (
+                <TableRow>
+                    <TableCell colSpan={columns.length} className='h-48 p-0'>
+                        <Empty>
+                            <EmptyHeader>
+                                <EmptyTitle>No data available</EmptyTitle>
+                                <EmptyDescription>
+                                    The data you are looking for was not found
+                                    or is not yet available.
+                                </EmptyDescription>
+                            </EmptyHeader>
+                        </Empty>
+                    </TableCell>
+                </TableRow>
+            )
+        }
+
+        return table.getRowModel().rows.map(row => (
+            <TableRow
+                key={row.id}
+                data-state={row.getIsSelected() && 'selected'}
+            >
+                {row.getVisibleCells().map(cell => (
+                    <TableCell key={cell.id}>
+                        {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                        )}
+                    </TableCell>
+                ))}
+            </TableRow>
+        ))
+    }
 
     return (
         <div className='space-y-4'>
@@ -73,36 +136,7 @@ export function DataTable<TData, TValue>({
                             </TableRow>
                         ))}
                     </TableHeader>
-                    <TableBody>
-                        {table.getRowModel().rows?.length ? (
-                            table.getRowModel().rows.map(row => (
-                                <TableRow
-                                    key={row.id}
-                                    data-state={
-                                        row.getIsSelected() && 'selected'
-                                    }
-                                >
-                                    {row.getVisibleCells().map(cell => (
-                                        <TableCell key={cell.id}>
-                                            {flexRender(
-                                                cell.column.columnDef.cell,
-                                                cell.getContext()
-                                            )}
-                                        </TableCell>
-                                    ))}
-                                </TableRow>
-                            ))
-                        ) : (
-                            <TableRow>
-                                <TableCell
-                                    colSpan={columns.length}
-                                    className='h-24 text-center'
-                                >
-                                    Tidak ada data.
-                                </TableCell>
-                            </TableRow>
-                        )}
-                    </TableBody>
+                    <TableBody>{renderTableBody()}</TableBody>
                 </Table>
             </div>
 
@@ -110,7 +144,7 @@ export function DataTable<TData, TValue>({
             {showPagination && table.getPageCount() > 1 && (
                 <div className='flex items-center justify-between py-4'>
                     <div className='flex items-center space-x-2 text-sm text-muted-foreground'>
-                        <p>Baris per halaman</p>
+                        <p>Rows per page</p>
                         <Select
                             value={`${table.getState().pagination.pageSize}`}
                             onValueChange={value => {
@@ -139,8 +173,8 @@ export function DataTable<TData, TValue>({
 
                     <div className='flex flex-1 items-center justify-end space-x-6 lg:space-x-8'>
                         <div className='flex w-[100px] items-center justify-center text-sm font-medium'>
-                            Halaman {table.getState().pagination.pageIndex + 1}{' '}
-                            dari {table.getPageCount()}
+                            Page {table.getState().pagination.pageIndex + 1} of{' '}
+                            {table.getPageCount()}
                         </div>
                         <Pagination className='mx-0 w-auto'>
                             <PaginationContent>
