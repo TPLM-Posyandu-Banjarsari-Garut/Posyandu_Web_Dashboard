@@ -1,3 +1,27 @@
-import { z } from "zod";
+import { z } from 'zod'
 
-export default z.object({ "examination_id": z.string().optional(), "schedule_id": z.string().nullable().optional(), "posyandu_id": z.string().optional(), "children_id": z.string().nullable().optional(), "parent_id": z.string().nullable().optional(), "cadre_id": z.string().optional(), "midwife_id": z.string().optional(), "examination_date": z.string().datetime({ offset: true }).nullable().optional(), "status": z.enum(["pending","processing","completed","cancelled"]).optional(), "result_summary": z.string().nullable().optional(), "notes": z.string().nullable().optional(), "medically_validated_at": z.string().datetime({ offset: true }).nullable().optional(), "medically_validated_by_midwife_id": z.string().nullable().optional() });
+export default z.object({
+    examination_id: z.string().optional(),
+    schedule_id: z.string().nullable().optional(),
+    posyandu_id: z.string().optional(),
+    children_id: z.string().nullable().optional(),
+    parent_id: z.string().nullable().optional(),
+    cadre_id: z.string().optional(),
+    midwife_id: z.string().optional(),
+    examination_date: z
+        .string()
+        .datetime({ offset: true })
+        .nullable()
+        .optional(),
+    status: z
+        .enum(['pending', 'processing', 'completed', 'cancelled'])
+        .optional(),
+    result_summary: z.string().nullable().optional(),
+    notes: z.string().nullable().optional(),
+    medically_validated_at: z
+        .string()
+        .datetime({ offset: true })
+        .nullable()
+        .optional(),
+    medically_validated_by_midwife_id: z.string().nullable().optional()
+})

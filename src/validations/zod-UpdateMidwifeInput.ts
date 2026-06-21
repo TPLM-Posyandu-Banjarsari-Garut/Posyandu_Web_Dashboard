@@ -1,3 +1,18 @@
-import { z } from "zod";
+import { z } from 'zod'
 
-export default z.object({ "user_id": z.string().min(1).optional(), "posyandu_id": z.string().min(1).optional(), "identity_number": z.string().max(16).nullable().optional(), "employee_number": z.string().max(32).nullable().optional(), "license_number": z.string().max(50).nullable().optional(), "is_mtbs_trained": z.boolean().optional(), "is_kelas_ibu_balita_facilitator": z.boolean().optional(), "is_pkat_member": z.boolean().optional(), "is_poned_provider": z.boolean().optional(), "is_primary_assignment": z.boolean().optional(), "duty_area_notes": z.string().nullable().optional(), "status": z.enum(["active","inactive","disabled","pending_verification"]).default("active") });
+export default z.object({
+    user_id: z.string().min(1).optional(),
+    posyandu_id: z.string().min(1).optional(),
+    identity_number: z.string().max(16).nullable().optional(),
+    employee_number: z.string().max(32).nullable().optional(),
+    license_number: z.string().max(50).nullable().optional(),
+    is_mtbs_trained: z.boolean().optional(),
+    is_kelas_ibu_balita_facilitator: z.boolean().optional(),
+    is_pkat_member: z.boolean().optional(),
+    is_poned_provider: z.boolean().optional(),
+    is_primary_assignment: z.boolean().optional(),
+    duty_area_notes: z.string().nullable().optional(),
+    status: z
+        .enum(['active', 'inactive', 'disabled', 'pending_verification'])
+        .default('active')
+})

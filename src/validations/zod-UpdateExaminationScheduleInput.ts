@@ -1,3 +1,18 @@
-import { z } from "zod";
+import { z } from 'zod'
 
-export default z.object({ "examination_id": z.string().min(1).optional(), "posyandu_id": z.string().min(1).optional(), "midwife_id": z.string().nullable().optional(), "cadre_id": z.string().nullable().optional(), "scheduled_date": z.string().datetime({ offset: true }).nullable().optional(), "start_time": z.string().nullable().optional(), "end_time": z.string().nullable().optional(), "max_participants": z.number().int().default(20), "current_participants": z.number().int().default(0), "location_notes": z.string().nullable().optional(), "status": z.enum(["pending","processing","completed","cancelled"]).default("pending"), "notes": z.string().nullable().optional() });
+export default z.object({
+    examination_id: z.string().min(1).optional(),
+    posyandu_id: z.string().min(1).optional(),
+    midwife_id: z.string().nullable().optional(),
+    cadre_id: z.string().nullable().optional(),
+    scheduled_date: z.string().datetime({ offset: true }).nullable().optional(),
+    start_time: z.string().nullable().optional(),
+    end_time: z.string().nullable().optional(),
+    max_participants: z.number().int().default(20),
+    current_participants: z.number().int().default(0),
+    location_notes: z.string().nullable().optional(),
+    status: z
+        .enum(['pending', 'processing', 'completed', 'cancelled'])
+        .default('pending'),
+    notes: z.string().nullable().optional()
+})

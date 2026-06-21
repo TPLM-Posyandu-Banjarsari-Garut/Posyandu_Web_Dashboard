@@ -1,3 +1,3 @@
-import { z } from "zod";
+import { z } from 'zod'
 
-export default z.object({ "email": z.string().email().max(255) });
+export default z.object({ email: z.string().email().max(255) })

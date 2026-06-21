@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
                 Cookie: `${SESSION_COOKIE_NAME}=${sessionToken}`
             }
             const origin = req.headers.get('origin')
-            if (origin) headers['Origin'] = origin
+            if (origin) headers.Origin = origin
             const userAgent = req.headers.get('user-agent')
             if (userAgent) headers['User-Agent'] = userAgent
             const forwardedFor = req.headers.get('x-forwarded-for')

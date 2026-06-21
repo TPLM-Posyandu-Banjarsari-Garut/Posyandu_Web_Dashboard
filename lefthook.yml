@@ -1,7 +1,5 @@
 pre-commit:
   commands:
-    generate-schemas:
-      run: bun run generate:schemas && git add src/types/api.d.ts src/validations/
     biome:
       glob: "*.{js,ts,jsx,tsx,json}"
       run: bunx --bun @biomejs/biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
