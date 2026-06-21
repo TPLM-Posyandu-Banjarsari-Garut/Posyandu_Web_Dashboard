@@ -9,7 +9,8 @@
         "typecheck": "tsc --noEmit",
         "format:check": "bunx --bun @biomejs/biome check",
         "format:fix": "bunx --bun @biomejs/biome check --write",
-        "check": "bun run typecheck && bun run format:check"
+        "check": "bun run typecheck && bun run format:check",
+        "generate:schemas": "bun scripts/generate.js"
     },
     "dependencies": {
         "@phosphor-icons/react": "^2.1.10",
@@ -40,7 +41,10 @@
         "@types/react": "^19",
         "@types/react-dom": "^19",
         "babel-plugin-react-compiler": "1.0.0",
+        "cross-var": "^1.1.0",
         "lefthook": "^2.1.9",
+        "openapi-to-zod": "^0.0.9",
+        "openapi-typescript": "^7.13.0",
         "tailwindcss": "^4",
         "typescript": "^6"
     },

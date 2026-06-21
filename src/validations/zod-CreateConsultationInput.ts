@@ -1,0 +1,3 @@
+import { z } from "zod";
+
+export default z.object({ "parent_id": z.string().min(1).optional(), "pregnancy_record_id": z.string().nullable().optional(), "children_id": z.string().nullable().optional(), "posyandu_id": z.string().min(1).optional(), "consultation_type": z.enum(["pregnancy","child_development","general"]).default("pregnancy"), "scheduled_at": z.union([z.string().datetime({ offset: true }), z.array(z.string().datetime({ offset: true })).min(1).max(2)]), "status": z.enum(["pending","confirmed","completed","cancelled","rescheduled"]).default("pending"), "notes": z.string().nullable().optional() });
