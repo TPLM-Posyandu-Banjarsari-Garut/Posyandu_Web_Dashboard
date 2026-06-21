@@ -7,7 +7,14 @@
     },
     "files": {
         "ignoreUnknown": true,
-        "includes": ["**", "!node_modules", "!.next", "!dist", "!build"]
+        "includes": [
+            "**",
+            "!node_modules",
+            "!.next",
+            "!dist",
+            "!build",
+            "!public"
+        ]
     },
     "formatter": {
         "enabled": true,
@@ -30,7 +37,8 @@
         "rules": {
             "preset": "recommended",
             "suspicious": {
-                "noUnknownAtRules": "off"
+                "noUnknownAtRules": "off",
+                "noDocumentCookie": "off"
             }
         },
         "domains": {
@@ -43,6 +51,11 @@
             "source": {
                 "organizeImports": "on"
             }
+        }
+    },
+    "css": {
+        "parser": {
+            "tailwindDirectives": true
         }
     }
 }
