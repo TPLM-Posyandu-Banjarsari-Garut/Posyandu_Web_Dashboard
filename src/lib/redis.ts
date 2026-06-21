@@ -1,13 +1,11 @@
 import { Redis } from '@upstash/redis'
-
-const redisUrl = process.env.UPSTASH_REDIS_REST_URL
-const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN
+import { REDIS_TOKEN, REDIS_URL } from '@/constants/constants'
 
 export const redis =
-    redisUrl && redisToken
+    REDIS_URL && REDIS_TOKEN
         ? new Redis({
-              url: redisUrl,
-              token: redisToken
+              url: REDIS_URL,
+              token: REDIS_TOKEN
           })
         : null
 

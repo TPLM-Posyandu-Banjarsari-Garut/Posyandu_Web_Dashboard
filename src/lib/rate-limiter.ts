@@ -1,25 +1,12 @@
-import { redis } from './redis'
+import { redis } from '@/lib/redis'
+import type { RateLimitResult } from '@/types/auth-type'
 
-export interface RateLimitResult {
-    success: boolean
-    limit: number
-    remaining: number
-    resetTime: Date
-}
-
-/**
- * Checks sliding window rate limit for a specific key
- * @param key Redis key to track hits
- * @param limit Maximum hits allowed in window
- * @param windowMs Time window in milliseconds
- */
 export async function checkRateLimit(
     key: string,
     limit: number,
     windowMs: number
 ): Promise<RateLimitResult> {
     if (!redis) {
-        // If Redis is not configured, allow access
         return { success: true, limit, remaining: limit, resetTime: new Date() }
     }
 
@@ -51,7 +38,6 @@ export async function checkRateLimit(
         }
     } catch (error) {
         console.error('Rate limit Redis check failed:', error)
-        // Fail open to avoid blocking users if Redis is temporarily down
         return { success: true, limit, remaining: limit, resetTime: new Date() }
     }
 }
