@@ -2,7 +2,9 @@
 
 import { DotsThree, PencilSimple, Trash } from '@phosphor-icons/react'
 import type { ColumnDef } from '@tanstack/react-table'
+import { useState } from 'react'
 import { toast } from 'sonner'
+import { AlertConfirmDialog } from '@/components/ui/alert-confirm-dialog'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -38,55 +40,66 @@ function ActionCell({
     onEdit: (user: User) => void
 }) {
     const deleteMutation = useDeleteUser()
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
     const handleDelete = async () => {
-        if (
-            globalThis.confirm(
-                `Are you sure you want to delete user "${user.name}"?`
-            )
-        ) {
-            try {
-                await deleteMutation.mutateAsync({ publicId: user.id })
-                toast.success(`Successfully deleted user "${user.name}"`)
-            } catch (err) {
-                const error = err as Error
-                toast.error(error.message || 'Failed to delete user')
-            }
+        try {
+            await deleteMutation.mutateAsync({ publicId: user.id })
+            toast.success(`Successfully deleted user "${user.name}"`)
+        } catch (err) {
+            const error = err as Error
+            toast.error(error.message || 'Failed to delete user')
         }
     }
 
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button
-                    variant='ghost'
-                    className='h-8 w-8 p-0'
-                    disabled={deleteMutation.isPending}
-                >
-                    <span className='sr-only'>Open menu</span>
-                    <DotsThree className='h-4 w-4' />
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align='end' className='w-40 font-mono'>
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                    onClick={() => onEdit(user)}
-                    className='cursor-pointer flex items-center gap-2'
-                >
-                    <PencilSimple className='h-4 w-4' />
-                    Edit
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                    onClick={handleDelete}
-                    disabled={deleteMutation.isPending}
-                    className='cursor-pointer text-red-600 dark:text-red-400 flex items-center gap-2 focus:text-red-600'
-                >
-                    <Trash className='h-4 w-4' />
-                    Delete
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
+        <>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button
+                        variant='ghost'
+                        className='h-8 w-8 p-0'
+                        disabled={deleteMutation.isPending}
+                    >
+                        <span className='sr-only'>Open menu</span>
+                        <DotsThree className='h-4 w-4' />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align='end' className='w-40 font-mono'>
+                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                        onClick={() => onEdit(user)}
+                        className='cursor-pointer flex items-center gap-2'
+                    >
+                        <PencilSimple className='h-4 w-4' />
+                        Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                        onSelect={e => {
+                            e.preventDefault()
+                            setIsDeleteDialogOpen(true)
+                        }}
+                        disabled={deleteMutation.isPending}
+                        className='cursor-pointer text-red-600 dark:text-red-400 flex items-center gap-2 focus:text-red-600'
+                    >
+                        <Trash className='h-4 w-4' />
+                        Delete
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+
+            <AlertConfirmDialog
+                open={isDeleteDialogOpen}
+                onOpenChange={setIsDeleteDialogOpen}
+                title='Delete User'
+                description={`Are you sure you want to delete user "${user.name}"? This action cannot be undone.`}
+                variant='destructive'
+                actionLabel='Delete'
+                onAction={handleDelete}
+                isLoading={deleteMutation.isPending}
+            />
+        </>
     )
 }
 
