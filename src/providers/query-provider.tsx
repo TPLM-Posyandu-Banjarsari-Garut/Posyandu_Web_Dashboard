@@ -76,6 +76,26 @@ export default function QueryProvider({
             localStorage.setItem('dashboard_last_activity', String(Date.now()))
         }
 
+        // Periodically check if session cookies were cleared manually in DevTools
+        const checkCookieInterval = setInterval(() => {
+            if (
+                typeof document !== 'undefined' &&
+                window.location.pathname.startsWith('/dashboard')
+            ) {
+                const cookiesList = document.cookie.split(';')
+                const hasSessionActive = cookiesList.some(c =>
+                    c.trim().startsWith('session_active=')
+                )
+                if (!hasSessionActive) {
+                    console.warn(
+                        'Session cookie cleared by user/browser. Redirecting...'
+                    )
+                    clearInterval(checkCookieInterval)
+                    window.location.href = '/unauthorized'
+                }
+            }
+        }, 2000)
+
         const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click']
         const handleEvent = () => {
             const now = Date.now()
@@ -97,6 +117,7 @@ export default function QueryProvider({
         }
 
         return () => {
+            clearInterval(checkCookieInterval)
             for (const event of events) {
                 window.removeEventListener(event, handleEvent)
             }

@@ -61,6 +61,14 @@ export async function POST(req: NextRequest) {
             res.headers.append('set-cookie', cookie)
         }
 
+        res.cookies.set('session_active', 'true', {
+            path: '/',
+            maxAge: 7 * 24 * 60 * 60,
+            httpOnly: false,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax'
+        })
+
         if (redis && data?.user && data?.session) {
             const tokenCookie = cookies.find(c =>
                 c.startsWith(`${SESSION_COOKIE_NAME}=`)

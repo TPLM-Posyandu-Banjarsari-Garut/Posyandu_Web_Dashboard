@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
 
         const res = NextResponse.json({ success: true })
         res.cookies.delete(SESSION_COOKIE_NAME)
+        res.cookies.delete('session_active')
         return res
     } catch (error) {
         console.error('Logout proxy route error:', error)
