@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { z } from 'zod'
-import type { SessionData } from '@/types/auth-type'
+import type { SessionData } from '@/types/auth'
 import type zodSignInInput from '@/validations/zod-SignInInput'
 
 type LoginInput = z.infer<typeof zodSignInInput>

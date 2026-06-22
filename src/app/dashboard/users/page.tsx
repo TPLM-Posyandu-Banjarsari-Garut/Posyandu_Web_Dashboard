@@ -89,6 +89,7 @@ export default function UsersPage() {
                     isFetching={isFetching}
                     onRefresh={handleRefresh}
                     onDelete={handleDelete}
+                    onRowClick={handleEdit}
                     config={{
                         enableSorting: true,
                         enableFiltering: true,

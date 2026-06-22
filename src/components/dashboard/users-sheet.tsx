@@ -123,7 +123,15 @@ export function UsersSheet({
                 password: ''
             })
         }
-    }, [user, open, form])
+    }, [
+        open,
+        user?.name,
+        user?.email,
+        user?.phone_number,
+        user?.role,
+        user?.status,
+        form
+    ])
 
     const schema = isEditMode ? zodUpdateUserInput : zodCreateUserInput
 

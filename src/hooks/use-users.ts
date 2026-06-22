@@ -2,31 +2,17 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { z } from 'zod'
 import type { User } from '@/components/tables/users-column-table'
 import { apiClient } from '@/lib/api-client'
+import type { PaginatedResponse } from '@/types'
+import type { UserQueryParams } from '@/types/users'
 import type zodCreateUserInput from '@/validations/zod-CreateUserInput'
 import type zodUpdateUserInput from '@/validations/zod-UpdateUserInput'
 
 type CreateUserInput = z.infer<typeof zodCreateUserInput>
 type UpdateUserInput = z.infer<typeof zodUpdateUserInput>
 
-export interface UsersResponse {
-    data: User[]
-    meta: {
-        page: string | number
-        limit: string | number
-        total_items: number
-        total_pages: number
-    }
-}
+export type UsersResponse = PaginatedResponse<User>
 
-export function useUsers(params?: {
-    page?: number | string
-    limit?: number | string
-    order?: 'asc' | 'desc'
-    role?: User['role']
-    status?: User['status']
-    search?: string
-    includeDeleted?: 'true' | 'false'
-}) {
+export function useUsers(params?: UserQueryParams) {
     const {
         page = 1,
         limit = 10,

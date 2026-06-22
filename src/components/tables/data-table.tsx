@@ -64,10 +64,7 @@ import {
     TableRow
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
-import type {
-    DataTableConfig,
-    ServerPaginationProps
-} from '@/types/data-table-types'
+import type { DataTableConfig, ServerPaginationProps } from '@/types/data-table'
 
 interface DataTableProps<TData, TValue> extends ServerPaginationProps {
     columns: ColumnDef<TData, TValue>[]
@@ -78,6 +75,7 @@ interface DataTableProps<TData, TValue> extends ServerPaginationProps {
     config?: DataTableConfig
     onRefresh?: () => void
     onDelete?: (selectedItems: TData[]) => void
+    onRowClick?: (row: TData) => void
 }
 
 export function DataTable<TData, TValue>({
@@ -91,7 +89,8 @@ export function DataTable<TData, TValue>({
     pagination,
     onPaginationChange,
     onRefresh,
-    onDelete
+    onDelete,
+    onRowClick
 }: Readonly<DataTableProps<TData, TValue>>) {
     const [sorting, setSorting] = useState<SortingState>([])
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -190,18 +189,35 @@ export function DataTable<TData, TValue>({
             <TableRow
                 key={row.id}
                 data-state={row.getIsSelected() && 'selected'}
-                className='odd:bg-muted/30 group/row'
+                className={cn(
+                    'odd:bg-muted/30 group/row',
+                    onRowClick && 'hover:bg-muted/50 transition-colors'
+                )}
             >
                 {row.getVisibleCells().map(cell => {
                     const isSelectColumn = cell.column.id === 'select'
+                    const isActionsColumn = cell.column.id === 'actions'
+
+                    const handleCellClick = () => {
+                        if (isSelectColumn || isActionsColumn) {
+                            return
+                        }
+                        onRowClick?.(row.original)
+                    }
+
                     return (
                         <TableCell
                             key={cell.id}
+                            onClick={handleCellClick}
                             className={cn(
                                 isSelectColumn &&
                                     'sticky left-0 bg-background z-10 shadow-[2px_0_0_0_rgba(0,0,0,0.05)]',
                                 isSelectColumn &&
-                                    'group-odd/row:bg-muted/30 group-hover/row:bg-muted/50 group-data-[state=selected]/row:bg-muted'
+                                    'group-odd/row:bg-muted/30 group-hover/row:bg-muted/50 group-data-[state=selected]/row:bg-muted',
+                                onRowClick &&
+                                    !isSelectColumn &&
+                                    !isActionsColumn &&
+                                    'cursor-pointer'
                             )}
                         >
                             {flexRender(

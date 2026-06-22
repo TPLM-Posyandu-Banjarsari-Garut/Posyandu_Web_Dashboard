@@ -6,7 +6,7 @@ import {
     SESSION_COOKIE_NAME
 } from '@/constants/constants'
 import { redis } from '@/lib/redis'
-import type { SessionData } from '@/types/auth-type'
+import type { SessionData } from '@/types/auth'
 
 async function getCachedSession(redisKey: string): Promise<SessionData | null> {
     if (!redis) return null

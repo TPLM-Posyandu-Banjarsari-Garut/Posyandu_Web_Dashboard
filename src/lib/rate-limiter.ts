@@ -1,5 +1,5 @@
 import { redis } from '@/lib/redis'
-import type { RateLimitResult } from '@/types/auth-type'
+import type { RateLimitResult } from '@/types/auth'
 
 export async function checkRateLimit(
     key: string,
