@@ -31,6 +31,13 @@ async function fetchAndCacheSession(
         })
 
         if (!response.ok) {
+            if (redis) {
+                try {
+                    await redis.del(redisKey)
+                } catch (err) {
+                    console.error('Proxy Redis delete error:', err)
+                }
+            }
             return false
         }
 

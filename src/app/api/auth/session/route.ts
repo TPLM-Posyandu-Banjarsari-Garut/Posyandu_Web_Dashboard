@@ -9,8 +9,11 @@ export async function GET(req: NextRequest) {
             return NextResponse.json(null)
         }
 
+        const { searchParams } = new URL(req.url)
+        const forceRefresh = searchParams.get('refresh') === 'true'
         const redisKey = `dashboard:session:${sessionToken}`
-        if (redis) {
+
+        if (redis && !forceRefresh) {
             try {
                 const cached = await redis.get(redisKey)
                 if (cached) {
@@ -29,6 +32,13 @@ export async function GET(req: NextRequest) {
         })
 
         if (!response.ok) {
+            if (redis) {
+                try {
+                    await redis.del(redisKey)
+                } catch (err) {
+                    console.error('API session Redis delete error:', err)
+                }
+            }
             return NextResponse.json(null)
         }
 
@@ -43,7 +53,15 @@ export async function GET(req: NextRequest) {
             }
         }
 
-        return NextResponse.json(sessionData)
+        const res = NextResponse.json(sessionData)
+
+        // Forward set-cookie headers (session token updates) to browser
+        const setCookies = response.headers.getSetCookie()
+        for (const cookie of setCookies) {
+            res.headers.append('set-cookie', cookie)
+        }
+
+        return res
     } catch (error) {
         console.error('API session proxy route error:', error)
         return NextResponse.json(null)

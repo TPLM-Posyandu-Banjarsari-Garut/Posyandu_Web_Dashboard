@@ -35,7 +35,7 @@ export async function apiClient(path: string, init?: RequestInit) {
     const cleanPath = path.startsWith('/') ? path : `/${path}`
     const url = `${baseUrl}${cleanPath}`
 
-    return fetch(url, {
+    const response = await fetch(url, {
         ...init,
         headers: {
             ...headersList,
@@ -44,4 +44,14 @@ export async function apiClient(path: string, init?: RequestInit) {
         credentials: 'include',
         cache: 'no-store'
     })
+
+    if (
+        !isServer &&
+        response.status === 401 &&
+        globalThis.location.pathname !== '/'
+    ) {
+        globalThis.location.href = '/'
+    }
+
+    return response
 }

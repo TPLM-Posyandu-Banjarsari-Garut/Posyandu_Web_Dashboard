@@ -33,6 +33,14 @@ async function fetchSessionFromBackend(
         })
 
         if (!response.ok) {
+            if (redis) {
+                try {
+                    const redisKey = `dashboard:session:${sessionToken}`
+                    await redis.del(redisKey)
+                } catch (err) {
+                    console.error('Session Redis delete error:', err)
+                }
+            }
             return null
         }
 
