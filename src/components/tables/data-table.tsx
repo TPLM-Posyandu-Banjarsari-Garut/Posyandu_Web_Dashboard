@@ -76,6 +76,7 @@ interface DataTableProps<TData, TValue> extends ServerPaginationProps {
     onRefresh?: () => void
     onDelete?: (selectedItems: TData[]) => void
     onRowClick?: (row: TData) => void
+    toolbarLeft?: React.ReactNode
 }
 
 export function DataTable<TData, TValue>({
@@ -90,7 +91,8 @@ export function DataTable<TData, TValue>({
     onPaginationChange,
     onRefresh,
     onDelete,
-    onRowClick
+    onRowClick,
+    toolbarLeft
 }: Readonly<DataTableProps<TData, TValue>>) {
     const [sorting, setSorting] = useState<SortingState>([])
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -290,19 +292,26 @@ export function DataTable<TData, TValue>({
         <div className='space-y-4'>
             {config.enableFiltering ||
             config.enableColumnVisibility ||
-            onRefresh ? (
+            onRefresh ||
+            toolbarLeft ? (
                 <div className='flex items-center justify-between gap-4'>
-                    {config.enableFiltering && (
-                        <div className='flex flex-1 items-center max-w-sm relative'>
-                            <Input
-                                placeholder='Search all columns...'
-                                value={globalFilter}
-                                onChange={event =>
-                                    setGlobalFilter(event.target.value)
-                                }
-                                className='w-full'
-                            />
+                    {toolbarLeft ? (
+                        <div className='flex flex-1 items-center gap-3 max-w-lg'>
+                            {toolbarLeft}
                         </div>
+                    ) : (
+                        config.enableFiltering && (
+                            <div className='flex flex-1 items-center max-w-sm relative'>
+                                <Input
+                                    placeholder='Search all columns...'
+                                    value={globalFilter}
+                                    onChange={event =>
+                                        setGlobalFilter(event.target.value)
+                                    }
+                                    className='w-full'
+                                />
+                            </div>
+                        )
                     )}
                     <div className='flex items-center gap-2 ml-auto'>
                         {onRefresh && (

@@ -1,4 +1,3 @@
-// cspell:ignore posyandus midwifes childrens kipi
 import {
     Archive,
     Bell,
@@ -6,7 +5,8 @@ import {
     Database,
     House,
     Notebook,
-    Stethoscope
+    Stethoscope,
+    Trash
 } from '@phosphor-icons/react'
 
 export const data = {
@@ -81,6 +81,13 @@ export const data = {
                 { title: 'Education Categories', url: '/education-categories' },
                 { title: 'Media', url: '/medias' }
             ]
+        }
+    ],
+    navSecondary: [
+        {
+            title: 'Trash Bin',
+            url: '/dashboard/trash',
+            icon: <Trash />
         }
     ]
 }

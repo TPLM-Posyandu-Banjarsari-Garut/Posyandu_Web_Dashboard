@@ -19,7 +19,9 @@ import {
 } from '@/components/ui/sidebar'
 
 export function NavMain({
-    items
+    items,
+    label = 'Platform',
+    className
 }: Readonly<{
     items: {
         title: string
@@ -32,10 +34,12 @@ export function NavMain({
             url: string
         }[]
     }[]
+    label?: string
+    className?: string
 }>) {
     return (
-        <SidebarGroup>
-            <SidebarGroupLabel>Platform</SidebarGroupLabel>
+        <SidebarGroup className={className}>
+            {label && <SidebarGroupLabel>{label}</SidebarGroupLabel>}
             <SidebarMenu>
                 {items.map(item => {
                     const hasSubItems = item.items && item.items.length > 0
@@ -50,7 +54,7 @@ export function NavMain({
                                         {item.icon}
                                         <span>{item.title}</span>
                                         {item.badge !== undefined && (
-                                            <Badge className='ml-auto rounded-full group-data-[collapsible=icon]/sidebar-wrapper:hidden animate-pulse'>
+                                            <Badge className='ml-auto rounded-full! bg-[#4f70f4] hover:bg-[#4f70f4] text-white border-none shadow-none font-semibold text-[11px] h-5 min-w-5 px-1.5 flex items-center justify-center group-data-[collapsible=icon]/sidebar-wrapper:hidden'>
                                                 {item.badge}
                                             </Badge>
                                         )}

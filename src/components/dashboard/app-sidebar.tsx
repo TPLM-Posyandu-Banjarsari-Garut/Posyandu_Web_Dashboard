@@ -20,7 +20,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <DashboardHeader />
             </SidebarHeader>
             <SidebarContent>
-                <NavMain items={data.navMain} />
+                <NavMain items={data.navMain} label='Platform' />
+                <NavMain
+                    items={data.navSecondary}
+                    label='System Settings'
+                    className='mt-auto pb-4'
+                />
             </SidebarContent>
             <SidebarFooter>
                 <NavUser />
