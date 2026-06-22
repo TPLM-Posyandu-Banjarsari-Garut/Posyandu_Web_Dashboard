@@ -17,6 +17,7 @@ export function useUsers(params?: UserQueryParams) {
         page = 1,
         limit = 10,
         order = 'desc',
+        status = 'active',
         includeDeleted = 'false',
         ...rest
     } = params || {}
@@ -29,10 +30,11 @@ export function useUsers(params?: UserQueryParams) {
             queryParams.append('limit', String(limit))
             queryParams.append('order', order)
             queryParams.append('includeDeleted', includeDeleted)
+            if (status) queryParams.append('status', status)
 
             for (const [key, value] of Object.entries(rest)) {
                 if (value !== undefined && value !== '') {
-                    queryParams.append(key, value as string)
+                    queryParams.append(key, value)
                 }
             }
             const response = await apiClient(
@@ -99,6 +101,19 @@ export function useUpdateUser() {
         { publicId: string; payload: UpdateUserInput }
     >({
         mutationFn: async ({ publicId, payload }) => {
+            if (payload.status === 'inactive') {
+                const response = await apiClient(`/api/users/${publicId}`, {
+                    method: 'DELETE'
+                })
+                const data = await response.json().catch(() => null)
+                if (!response.ok) {
+                    throw new Error(
+                        data?.message || 'Failed to move user to trash'
+                    )
+                }
+                return data
+            }
+
             const response = await apiClient(`/api/users/${publicId}`, {
                 method: 'PUT',
                 body: JSON.stringify(payload)

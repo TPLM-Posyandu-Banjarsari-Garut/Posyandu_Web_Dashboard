@@ -50,7 +50,20 @@ function parseCookieOptions(parts: string[]): CookieOptions {
 }
 
 function setCookiesOnResponse(res: NextResponse, cookies: string[]) {
+    const hasSecureToken = cookies.some(c =>
+        c.trim().startsWith('__Secure-better-auth.session_token=')
+    )
+
     for (const cookie of cookies) {
+        const trimmed = cookie.trim()
+        if (
+            process.env.NODE_ENV !== 'production' &&
+            hasSecureToken &&
+            trimmed.startsWith('better-auth.session_token=')
+        ) {
+            continue
+        }
+
         let modifiedCookie = cookie
         if (process.env.NODE_ENV !== 'production') {
             modifiedCookie = modifiedCookie.replace(/;\s*Secure/gi, '')
@@ -127,7 +140,7 @@ export async function GET(req: NextRequest) {
 
         const response = await fetch(`${BACKEND_URL}/api/auth/me`, {
             headers: {
-                Cookie: `${SESSION_COOKIE_NAME}=${sessionToken}`
+                Cookie: `${SESSION_COOKIE_NAME}=${sessionToken}; __Secure-better-auth.session_token=${sessionToken}; better-auth.session_token=${sessionToken}`
             },
             cache: 'no-store'
         })
