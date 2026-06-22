@@ -30,7 +30,13 @@ export interface User {
     updatedAt?: string
 }
 
-function ActionCell({ user }: { user: User }) {
+function ActionCell({
+    user,
+    onEdit
+}: {
+    user: User
+    onEdit: (user: User) => void
+}) {
     const deleteMutation = useDeleteUser()
 
     const handleDelete = async () => {
@@ -64,7 +70,10 @@ function ActionCell({ user }: { user: User }) {
             <DropdownMenuContent align='end' className='w-40 font-mono'>
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className='cursor-pointer flex items-center gap-2'>
+                <DropdownMenuItem
+                    onClick={() => onEdit(user)}
+                    className='cursor-pointer flex items-center gap-2'
+                >
                     <PencilSimple className='h-4 w-4' />
                     Edit
                 </DropdownMenuItem>
@@ -81,7 +90,7 @@ function ActionCell({ user }: { user: User }) {
     )
 }
 
-export const columns: ColumnDef<User>[] = [
+export const getColumns = (onEdit: (user: User) => void): ColumnDef<User>[] => [
     {
         id: 'select',
         header: ({ table }) => (
@@ -207,6 +216,6 @@ export const columns: ColumnDef<User>[] = [
     },
     {
         id: 'actions',
-        cell: ({ row }) => <ActionCell user={row.original} />
+        cell: ({ row }) => <ActionCell user={row.original} onEdit={onEdit} />
     }
 ]

@@ -1,12 +1,19 @@
 'use client'
 
+import { Plus } from '@phosphor-icons/react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { DashboardTitle } from '@/components/dashboard/dashboard-title'
+import { UsersSheet } from '@/components/dashboard/users-sheet'
 import { DataTable } from '@/components/tables/data-table'
-import { columns, type User } from '@/components/tables/users-column-table'
+import { getColumns, type User } from '@/components/tables/users-column-table'
+import { Button } from '@/components/ui/button'
 import { useDeleteUser, useUsers } from '@/hooks/use-users'
 
 export default function UsersPage() {
+    const [isOpen, setIsOpen] = useState(false)
+    const [selectedUser, setSelectedUser] = useState<User | null>(null)
+
     const {
         data: usersResponse,
         isLoading,
@@ -49,12 +56,30 @@ export default function UsersPage() {
         }
     }
 
+    const handleEdit = (user: User) => {
+        setSelectedUser(user)
+        setIsOpen(true)
+    }
+
+    const handleCreate = () => {
+        setSelectedUser(null)
+        setIsOpen(true)
+    }
+
+    const columns = getColumns(handleEdit)
+
     return (
         <>
-            <DashboardTitle
-                title='Users'
-                subtitle='Manage Posyandu system users data'
-            />
+            <div className='flex items-center justify-between'>
+                <DashboardTitle
+                    title='Users'
+                    subtitle='Manage Posyandu system users data'
+                />
+                <Button onClick={handleCreate}>
+                    <Plus className='h-4 w-4' />
+                    Add New User
+                </Button>
+            </div>
 
             <section className='mt-6'>
                 <DataTable
@@ -71,6 +96,12 @@ export default function UsersPage() {
                     }}
                 />
             </section>
+
+            <UsersSheet
+                open={isOpen}
+                onOpenChange={setIsOpen}
+                user={selectedUser}
+            />
         </>
     )
 }
