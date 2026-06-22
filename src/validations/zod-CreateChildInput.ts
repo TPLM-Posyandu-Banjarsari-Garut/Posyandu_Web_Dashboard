@@ -15,7 +15,7 @@ export default z.object({
         .nullable()
         .optional(),
     place_of_birth: z.string().max(100).nullable().optional(),
-    birth_date: z.date().optional(),
+    birth_date: z.string().date().optional(),
     birth_order: z.number().int().gt(0).nullable().optional(),
     blood_type: z
         .union([
@@ -30,5 +30,6 @@ export default z.object({
         .optional(),
     birth_weight: z.string().optional(),
     birth_length: z.string().optional(),
-    birth_head_circumference: z.string().optional()
+    birth_head_circumference: z.string().optional(),
+    parent_user_id: z.string().nullable().optional()
 })

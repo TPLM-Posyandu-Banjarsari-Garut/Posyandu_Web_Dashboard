@@ -30,5 +30,6 @@ export default z.object({
         .optional(),
     birth_weight: z.string().optional(),
     birth_length: z.string().optional(),
-    birth_head_circumference: z.string().optional()
+    birth_head_circumference: z.string().optional(),
+    parent_user_id: z.string().nullable().optional()
 })

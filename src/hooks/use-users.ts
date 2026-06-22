@@ -32,7 +32,7 @@ export function useUsers(params?: UserQueryParams) {
 
             for (const [key, value] of Object.entries(rest)) {
                 if (value !== undefined && value !== '') {
-                    queryParams.append(key, String(value))
+                    queryParams.append(key, value as string)
                 }
             }
             const response = await apiClient(

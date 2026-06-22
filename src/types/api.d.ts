@@ -495,6 +495,161 @@ export interface paths {
         patch?: never
         trace?: never
     }
+    '/api/trash': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        /** Get list of deleted/inactive items from trash bin [Roles: admin] */
+        get: {
+            parameters: {
+                query?: {
+                    page?: string
+                    limit?: string
+                    order?: 'asc' | 'desc'
+                    /** @description Filter trash items by table/type */
+                    type?:
+                        | 'user'
+                        | 'children'
+                        | 'posyandu'
+                        | 'education'
+                        | 'education_category'
+                        | 'vaccine'
+                        | 'vitamin'
+                        | 'pregnancy_record'
+                        | 'nutrition_record'
+                        | 'vitamin_record'
+                        | 'immunization_record'
+                        | 'kipi_detail'
+                        | 'examination_schedule'
+                        | 'examination_record'
+                        | 'examination'
+                        | 'inventory'
+                    /** @description Search trash items by name/attributes */
+                    search?: string
+                }
+                header?: never
+                path?: never
+                cookie?: never
+            }
+            requestBody?: never
+            responses: {
+                /** @description Success get list of deleted items */
+                200: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content?: never
+                }
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content?: never
+                }
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content?: never
+                }
+            }
+        }
+        put?: never
+        post?: never
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
+    '/api/trash/{type}/{public_id}/restore': {
+        parameters: {
+            query?: never
+            header?: never
+            path?: never
+            cookie?: never
+        }
+        get?: never
+        put?: never
+        /** Restore a deleted/inactive item from trash bin [Roles: admin] */
+        post: {
+            parameters: {
+                query?: never
+                header?: never
+                path: {
+                    /** @description The type of the resource to restore */
+                    type:
+                        | 'user'
+                        | 'children'
+                        | 'posyandu'
+                        | 'education'
+                        | 'education_category'
+                        | 'vaccine'
+                        | 'vitamin'
+                        | 'pregnancy_record'
+                        | 'nutrition_record'
+                        | 'vitamin_record'
+                        | 'immunization_record'
+                        | 'kipi_detail'
+                        | 'examination_schedule'
+                        | 'examination_record'
+                        | 'examination'
+                        | 'inventory'
+                    /** @description The unique public ID of the resource to restore */
+                    public_id: string
+                }
+                cookie?: never
+            }
+            requestBody?: never
+            responses: {
+                /** @description Item restored successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content?: never
+                }
+                /** @description Validation error */
+                400: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content?: never
+                }
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content?: never
+                }
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content?: never
+                }
+                /** @description Item not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown
+                    }
+                    content?: never
+                }
+            }
+        }
+        delete?: never
+        options?: never
+        head?: never
+        patch?: never
+        trace?: never
+    }
     '/api/users': {
         parameters: {
             query?: never
@@ -6023,6 +6178,7 @@ export interface components {
             birth_length?: string
             /** @example 34.2 */
             birth_head_circumference?: string
+            parent_user_id?: string | null
         }
         UpdateChildInput: {
             /** @example posyandu id-uuid */
@@ -6058,6 +6214,7 @@ export interface components {
             birth_length?: string
             /** @example 34.2 */
             birth_head_circumference?: string
+            parent_user_id?: string | null
         }
         CreateVitaminInput: {
             /** @example Vitamin A Biru */

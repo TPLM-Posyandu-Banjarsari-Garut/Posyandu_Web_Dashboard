@@ -5,6 +5,7 @@ export default z.object({
     content: z.string().min(10),
     summary: z.string().max(500).nullable().optional(),
     image_url: z
+        .string()
         .url()
         .nullable()
         .describe(
