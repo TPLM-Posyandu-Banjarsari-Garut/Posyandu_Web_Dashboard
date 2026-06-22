@@ -85,6 +85,7 @@ export function useCreateUser() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['users'] })
+            queryClient.refetchQueries({ queryKey: ['users'] })
         }
     })
 }
@@ -110,6 +111,7 @@ export function useUpdateUser() {
         },
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['users'] })
+            queryClient.refetchQueries({ queryKey: ['users'] })
             queryClient.invalidateQueries({
                 queryKey: ['users', variables.publicId]
             })
@@ -144,6 +146,7 @@ export function useDeleteUser() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['users'] })
+            queryClient.refetchQueries({ queryKey: ['users'] })
         }
     })
 }

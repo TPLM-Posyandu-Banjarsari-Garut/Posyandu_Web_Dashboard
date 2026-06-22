@@ -35,16 +35,19 @@ export interface User {
 function ActionCell({
     user,
     onEdit
-}: {
+}: Readonly<{
     user: User
     onEdit: (user: User) => void
-}) {
+}>) {
     const deleteMutation = useDeleteUser()
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
     const handleDelete = async () => {
         try {
-            await deleteMutation.mutateAsync({ publicId: user.id })
+            await deleteMutation.mutateAsync({
+                publicId: user.id,
+                permanent: false
+            })
             toast.success(`Successfully deleted user "${user.name}"`)
         } catch (err) {
             const error = err as Error
