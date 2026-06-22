@@ -1,9 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import {
+    columns,
+    type Parent
+} from '@/components/columns-table/parents-column-table'
 import { DashboardTitle } from '@/components/dashboard/dashboard-title'
 import { DataTable } from '@/components/tables/data-table'
-import { columns, type Parent } from '@/components/tables/parents-column-table'
 
 const mockParents: Parent[] = [
     {

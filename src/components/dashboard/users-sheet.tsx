@@ -4,7 +4,7 @@ import { useForm } from '@tanstack/react-form'
 import { useEffect } from 'react'
 import { toast } from 'sonner'
 import type { z } from 'zod'
-import type { User } from '@/components/tables/users-column-table'
+import type { User } from '@/components/columns-table/users-column-table'
 import { Button } from '@/components/ui/button'
 import {
     FieldError,

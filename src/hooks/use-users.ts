@@ -1,6 +1,12 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { QueryKey } from '@tanstack/react-query'
+import {
+    keepPreviousData,
+    useMutation,
+    useQuery,
+    useQueryClient
+} from '@tanstack/react-query'
 import type { z } from 'zod'
-import type { User } from '@/components/tables/users-column-table'
+import type { User } from '@/components/columns-table/users-column-table'
 import { apiClient } from '@/lib/api-client'
 import type { PaginatedResponse } from '@/types'
 import type { UserQueryParams } from '@/types/users'
@@ -12,6 +18,14 @@ type UpdateUserInput = z.infer<typeof zodUpdateUserInput>
 
 export type UsersResponse = PaginatedResponse<User>
 
+export const userKeys = {
+    all: ['users'] as const,
+    lists: () => [...userKeys.all, 'list'] as const,
+    list: (params: UserQueryParams) => [...userKeys.lists(), params] as const,
+    details: () => [...userKeys.all, 'detail'] as const,
+    detail: (id: string) => [...userKeys.details(), id] as const
+}
+
 export function useUsers(params?: UserQueryParams) {
     const {
         page = 1,
@@ -22,23 +36,36 @@ export function useUsers(params?: UserQueryParams) {
         ...rest
     } = params || {}
 
-    return useQuery<UsersResponse>({
-        queryKey: ['users', { page, limit, order, includeDeleted, ...rest }],
-        queryFn: async () => {
-            const queryParams = new URLSearchParams()
-            queryParams.append('page', String(page))
-            queryParams.append('limit', String(limit))
-            queryParams.append('order', order)
-            queryParams.append('includeDeleted', includeDeleted)
-            if (status) queryParams.append('status', status)
+    const { search, role, ...otherRest } = rest
 
-            for (const [key, value] of Object.entries(rest)) {
+    return useQuery<UsersResponse>({
+        queryKey: userKeys.list({
+            page,
+            limit,
+            order,
+            status,
+            includeDeleted,
+            search,
+            role,
+            ...otherRest
+        }),
+        queryFn: async () => {
+            const queryParamsObj = new URLSearchParams()
+            queryParamsObj.append('page', String(page))
+            queryParamsObj.append('limit', String(limit))
+            queryParamsObj.append('order', order)
+            queryParamsObj.append('includeDeleted', includeDeleted)
+            if (status) queryParamsObj.append('status', status)
+            if (search) queryParamsObj.append('search', search)
+            if (role) queryParamsObj.append('role', role)
+
+            for (const [key, value] of Object.entries(otherRest)) {
                 if (value !== undefined && value !== '') {
-                    queryParams.append(key, value)
+                    queryParamsObj.append(key, String(value))
                 }
             }
             const response = await apiClient(
-                `/api/users?${queryParams.toString()}`
+                `/api/users?${queryParamsObj.toString()}`
             )
             if (!response.ok) {
                 const errorData = await response.json().catch(() => null)
@@ -47,14 +74,14 @@ export function useUsers(params?: UserQueryParams) {
             const result = await response.json()
             return result.data
         },
-        staleTime: 30 * 1000,
-        refetchInterval: 10 * 1000
+        staleTime: 5 * 60 * 1000,
+        placeholderData: keepPreviousData
     })
 }
 
 export function useUserDetail(publicId: string) {
     return useQuery<User>({
-        queryKey: ['users', publicId],
+        queryKey: userKeys.detail(publicId),
         queryFn: async () => {
             const response = await apiClient(`/api/users/${publicId}`)
             if (!response.ok) {
@@ -85,9 +112,8 @@ export function useCreateUser() {
             }
             return data
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['users'] })
-            queryClient.refetchQueries({ queryKey: ['users'] })
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: userKeys.lists() })
         }
     })
 }
@@ -98,7 +124,8 @@ export function useUpdateUser() {
     return useMutation<
         User,
         Error,
-        { publicId: string; payload: UpdateUserInput }
+        { publicId: string; payload: UpdateUserInput },
+        { previousData: [readonly unknown[], unknown][] }
     >({
         mutationFn: async ({ publicId, payload }) => {
             if (payload.status === 'inactive') {
@@ -124,12 +151,52 @@ export function useUpdateUser() {
             }
             return data
         },
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['users'] })
-            queryClient.refetchQueries({ queryKey: ['users'] })
-            queryClient.invalidateQueries({
-                queryKey: ['users', variables.publicId]
+        onMutate: async ({ publicId, payload }) => {
+            await queryClient.cancelQueries({ queryKey: userKeys.lists() })
+            const previousData = queryClient.getQueriesData({
+                queryKey: userKeys.lists()
             })
+
+            queryClient.setQueriesData<UsersResponse>(
+                { queryKey: userKeys.lists() },
+                old => {
+                    if (!old) return old
+
+                    if (payload.status === 'inactive') {
+                        return {
+                            ...old,
+                            data: old.data.filter(u => u.id !== publicId)
+                        }
+                    }
+
+                    return {
+                        ...old,
+                        data: old.data.map(u =>
+                            u.id === publicId
+                                ? { ...u, ...(payload as Partial<User>) }
+                                : u
+                        )
+                    }
+                }
+            )
+
+            return { previousData }
+        },
+        onError: (_err, _vars, context) => {
+            if (context?.previousData) {
+                for (const [key, data] of context.previousData) {
+                    queryClient.setQueryData(key as QueryKey, data)
+                }
+            }
+        },
+        onSuccess: (updatedUser, variables) => {
+            queryClient.setQueryData(
+                userKeys.detail(variables.publicId),
+                updatedUser
+            )
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: userKeys.lists() })
         }
     })
 }
@@ -140,7 +207,8 @@ export function useDeleteUser() {
     return useMutation<
         boolean,
         Error,
-        { publicId: string; permanent?: boolean }
+        { publicId: string; permanent?: boolean },
+        { previousData: [readonly unknown[], unknown][] }
     >({
         mutationFn: async ({ publicId, permanent }) => {
             const queryParams = new URLSearchParams()
@@ -159,9 +227,37 @@ export function useDeleteUser() {
             }
             return true
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['users'] })
-            queryClient.refetchQueries({ queryKey: ['users'] })
+        onMutate: async ({ publicId }) => {
+            await queryClient.cancelQueries({ queryKey: userKeys.lists() })
+            const previousData = queryClient.getQueriesData({
+                queryKey: userKeys.lists()
+            })
+
+            queryClient.setQueriesData<UsersResponse>(
+                { queryKey: userKeys.lists() },
+                old => {
+                    if (!old) return old
+                    return {
+                        ...old,
+                        data: old.data.filter(u => u.id !== publicId)
+                    }
+                }
+            )
+
+            return { previousData }
+        },
+        onError: (_err, _vars, context) => {
+            if (context?.previousData) {
+                for (const [key, data] of context.previousData) {
+                    queryClient.setQueryData(key as QueryKey, data)
+                }
+            }
+        },
+        onSettled: (_, __, variables) => {
+            queryClient.invalidateQueries({ queryKey: userKeys.lists() })
+            queryClient.removeQueries({
+                queryKey: userKeys.detail(variables.publicId)
+            })
         }
     })
 }

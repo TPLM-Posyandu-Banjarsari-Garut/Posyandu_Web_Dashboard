@@ -1,8 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import {
+    type Child,
+    columns
+} from '@/components/columns-table/childrens-column-table'
 import { DashboardTitle } from '@/components/dashboard/dashboard-title'
-import { type Child, columns } from '@/components/tables/childrens-column-table'
 import { DataTable } from '@/components/tables/data-table'
 
 const mockChildren: Child[] = [

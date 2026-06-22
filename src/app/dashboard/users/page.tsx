@@ -3,10 +3,13 @@
 import { Plus } from '@phosphor-icons/react'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import {
+    getColumns,
+    type User
+} from '@/components/columns-table/users-column-table'
 import { DashboardTitle } from '@/components/dashboard/dashboard-title'
 import { UsersSheet } from '@/components/dashboard/users-sheet'
 import { DataTable } from '@/components/tables/data-table'
-import { getColumns, type User } from '@/components/tables/users-column-table'
 import { Button } from '@/components/ui/button'
 import { useDeleteUser, useUsers } from '@/hooks/use-users'
 

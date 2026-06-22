@@ -1,8 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import {
+    type Cadre,
+    columns
+} from '@/components/columns-table/cadres-column-table'
 import { DashboardTitle } from '@/components/dashboard/dashboard-title'
-import { type Cadre, columns } from '@/components/tables/cadres-column-table'
 import { DataTable } from '@/components/tables/data-table'
 
 const mockCadres: Cadre[] = [

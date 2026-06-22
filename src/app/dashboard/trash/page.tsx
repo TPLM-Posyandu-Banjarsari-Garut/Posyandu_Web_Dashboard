@@ -2,9 +2,9 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { columns } from '@/components/columns-table/trash-column-table'
 import { DashboardTitle } from '@/components/dashboard/dashboard-title'
 import { DataTable } from '@/components/tables/data-table'
-import { getColumns } from '@/components/tables/trash-column-table'
 import { Input } from '@/components/ui/input'
 import {
     Select,
@@ -63,7 +63,6 @@ export default function TrashPage() {
             toast.success(
                 `Successfully permanently deleted ${selectedItems.length} items`
             )
-            await refetch()
         } catch (err) {
             const error = err as Error
             toast.error(error.message || 'Failed to permanently delete items')
@@ -73,8 +72,6 @@ export default function TrashPage() {
     const totalPages = trashResponse?.meta.total_pages
         ? Number(trashResponse.meta.total_pages)
         : 1
-
-    const columns = getColumns(handleRefresh)
 
     return (
         <>

@@ -1,12 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { DashboardTitle } from '@/components/dashboard/dashboard-title'
-import { DataTable } from '@/components/tables/data-table'
 import {
     columns,
     type Midwife
-} from '@/components/tables/midwifes-column-table'
+} from '@/components/columns-table/midwifes-column-table'
+import { DashboardTitle } from '@/components/dashboard/dashboard-title'
+import { DataTable } from '@/components/tables/data-table'
 
 const mockMidwives: Midwife[] = [
     {

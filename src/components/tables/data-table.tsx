@@ -9,7 +9,6 @@ import {
     Trash
 } from '@phosphor-icons/react'
 import {
-    type Column,
     type ColumnDef,
     type ColumnFiltersState,
     flexRender,
@@ -17,11 +16,15 @@ import {
     getFilteredRowModel,
     getPaginationRowModel,
     getSortedRowModel,
+    type Header,
+    type OnChangeFn,
+    type PaginationState,
     type SortingState,
+    type Table as TanstackTable,
     useReactTable,
     type VisibilityState
 } from '@tanstack/react-table'
-import { useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
     DropdownMenu,
@@ -64,20 +67,116 @@ import {
     TableRow
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
-import type { DataTableConfig, ServerPaginationProps } from '@/types/data-table'
+import type { DataTableConfig } from '@/types/data-table'
 
-interface DataTableProps<TData, TValue> extends ServerPaginationProps {
+interface BaseDataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[]
     data: TData[]
     showPagination?: boolean
     isLoading?: boolean
     isFetching?: boolean
-    config?: DataTableConfig
     onRefresh?: () => void
     onDelete?: (selectedItems: TData[]) => void
     deleteLabel?: string
     onRowClick?: (row: TData) => void
     toolbarLeft?: React.ReactNode
+}
+
+type DataTableProps<TData, TValue> = BaseDataTableProps<TData, TValue> &
+    (
+        | {
+              config: DataTableConfig & { serverSide: true }
+              pageCount: number
+              pagination: PaginationState
+              onPaginationChange: OnChangeFn<PaginationState>
+          }
+        | {
+              config?: DataTableConfig & { serverSide?: false }
+              pageCount?: never
+              pagination?: never
+              onPaginationChange?: never
+          }
+    )
+
+const coreRowModel = getCoreRowModel()
+const paginationRowModel = getPaginationRowModel()
+const sortedRowModel = getSortedRowModel()
+const filteredRowModel = getFilteredRowModel()
+
+function TableHeaderCell<TData, TValue>({
+    header,
+    config,
+    table
+}: Readonly<{
+    header: Header<TData, TValue>
+    config: DataTableConfig
+    table: TanstackTable<TData>
+}>) {
+    const isSelectColumn = header.column.id === 'select'
+    const canSort = header.column.getCanSort() && config.enableSorting
+
+    const handleHeaderClick = useCallback(
+        (e: React.MouseEvent) => {
+            if (isSelectColumn) {
+                const target = e.target as HTMLElement
+                if (!target.closest('[data-slot="checkbox"]')) {
+                    const hasSelection =
+                        table.getIsAllPageRowsSelected() ||
+                        table.getIsSomePageRowsSelected()
+                    table.toggleAllPageRowsSelected(!hasSelection)
+                }
+            }
+        },
+        [isSelectColumn, table]
+    )
+
+    const renderSortIcon = () => {
+        const sortedState = header.column.getIsSorted()
+        if (sortedState === 'asc') {
+            return <CaretUp className='ml-2 h-4 w-4 shrink-0' />
+        }
+        if (sortedState === 'desc') {
+            return <CaretDown className='ml-2 h-4 w-4 shrink-0' />
+        }
+        return <ArrowsDownUp className='ml-2 h-4 w-4 shrink-0 opacity-50' />
+    }
+
+    if (header.isPlaceholder) {
+        return (
+            <TableHead
+                className={cn(
+                    isSelectColumn &&
+                        'sticky left-0 bg-background z-20 shadow-[2px_0_0_0_rgba(0,0,0,0.05)] cursor-pointer'
+                )}
+            />
+        )
+    }
+
+    return (
+        <TableHead
+            className={cn(
+                isSelectColumn &&
+                    'sticky left-0 bg-background z-20 shadow-[2px_0_0_0_rgba(0,0,0,0.05)] cursor-pointer'
+            )}
+            onClick={handleHeaderClick}
+        >
+            {canSort ? (
+                <button
+                    type='button'
+                    onClick={header.column.getToggleSortingHandler()}
+                    className='flex items-center hover:text-foreground text-left cursor-pointer select-none font-mono'
+                >
+                    {flexRender(
+                        header.column.columnDef.header,
+                        header.getContext()
+                    )}
+                    {renderSortIcon()}
+                </button>
+            ) : (
+                flexRender(header.column.columnDef.header, header.getContext())
+            )}
+        </TableHead>
+    )
 }
 
 export function DataTable<TData, TValue>({
@@ -104,51 +203,70 @@ export function DataTable<TData, TValue>({
     )
     const [rowSelection, setRowSelection] = useState({})
 
-    const tableOptions = {
-        data,
-        columns,
-        autoResetPageIndex: false,
-        state: {
+    const tableOptions = useMemo(
+        () => ({
+            data,
+            columns,
+            autoResetPageIndex: false,
+            state: {
+                sorting,
+                columnFilters,
+                globalFilter,
+                columnVisibility,
+                rowSelection,
+                ...(config.serverSide && pagination ? { pagination } : {})
+            },
+            onRowSelectionChange: setRowSelection,
+            onSortingChange: config.enableSorting ? setSorting : undefined,
+            onColumnFiltersChange: config.enableFiltering
+                ? setColumnFilters
+                : undefined,
+            onGlobalFilterChange: config.enableFiltering
+                ? setGlobalFilter
+                : undefined,
+            onColumnVisibilityChange: config.enableColumnVisibility
+                ? setColumnVisibility
+                : undefined,
+
+            getCoreRowModel: coreRowModel,
+
+            ...(config.serverSide
+                ? {
+                      manualPagination: true,
+                      pageCount: pageCount ?? -1,
+                      onPaginationChange: onPaginationChange
+                  }
+                : {
+                      getPaginationRowModel: showPagination
+                          ? paginationRowModel
+                          : undefined
+                  }),
+
+            getSortedRowModel: config.enableSorting
+                ? sortedRowModel
+                : undefined,
+            getFilteredRowModel: config.enableFiltering
+                ? filteredRowModel
+                : undefined
+        }),
+        [
+            data,
+            columns,
             sorting,
             columnFilters,
             globalFilter,
             columnVisibility,
             rowSelection,
-            ...(config.serverSide && pagination ? { pagination } : {})
-        },
-        onRowSelectionChange: setRowSelection,
-        onSortingChange: config.enableSorting ? setSorting : undefined,
-        onColumnFiltersChange: config.enableFiltering
-            ? setColumnFilters
-            : undefined,
-        onGlobalFilterChange: config.enableFiltering
-            ? setGlobalFilter
-            : undefined,
-        onColumnVisibilityChange: config.enableColumnVisibility
-            ? setColumnVisibility
-            : undefined,
-
-        getCoreRowModel: getCoreRowModel(),
-
-        ...(config.serverSide
-            ? {
-                  manualPagination: true,
-                  pageCount: pageCount ?? -1,
-                  onPaginationChange: onPaginationChange
-              }
-            : {
-                  getPaginationRowModel: showPagination
-                      ? getPaginationRowModel()
-                      : undefined
-              }),
-
-        getSortedRowModel: config.enableSorting
-            ? getSortedRowModel()
-            : undefined,
-        getFilteredRowModel: config.enableFiltering
-            ? getFilteredRowModel()
-            : undefined
-    }
+            config.serverSide,
+            config.enableSorting,
+            config.enableFiltering,
+            config.enableColumnVisibility,
+            pagination,
+            pageCount,
+            onPaginationChange,
+            showPagination
+        ]
+    )
 
     const table = useReactTable(tableOptions)
 
@@ -242,23 +360,20 @@ export function DataTable<TData, TValue>({
         ))
     }
 
-    const renderSortIcon = (column: Column<TData, unknown>) => {
-        const sortedState = column.getIsSorted()
-        if (sortedState === 'asc') {
-            return <CaretUp className='ml-2 h-4 w-4 shrink-0' />
-        }
-        if (sortedState === 'desc') {
-            return <CaretDown className='ml-2 h-4 w-4 shrink-0' />
-        }
-        return <ArrowsDownUp className='ml-2 h-4 w-4 shrink-0 opacity-50' />
-    }
+    const currentPageIndex = table.getState().pagination.pageIndex
+    const totalPages = table.getPageCount()
 
-    const getPageNumbers = () => {
+    const getPageNumbers = useCallback(() => {
         const pages: { id: string; value: number | 'ellipsis' }[] = []
-        const currentPage = table.getState().pagination.pageIndex + 1
-        const totalPages = table.getPageCount()
+        const currentPage = currentPageIndex + 1
 
         const addPage = (val: number | 'ellipsis', index: number) => {
+            if (val === 'ellipsis') {
+                const lastPage = pages[pages.length - 1]
+                if (lastPage && lastPage.value === 'ellipsis') {
+                    return
+                }
+            }
             pages.push({
                 id: `page-${val}-${index}`,
                 value: val
@@ -280,7 +395,6 @@ export function DataTable<TData, TValue>({
             const end = Math.min(totalPages - 1, currentPage + 1)
 
             for (let i = start; i <= end; i++) {
-                // To avoid duplicate values in our custom page list
                 if (!pages.some(p => p.value === i)) {
                     addPage(i, i)
                 }
@@ -295,7 +409,22 @@ export function DataTable<TData, TValue>({
             }
         }
         return pages
-    }
+    }, [currentPageIndex, totalPages])
+
+    // biome-ignore lint/correctness/useExhaustiveDependencies: table reference is unstable but fresh via closure
+    const handleDelete = useCallback(() => {
+        const selectedRows = table
+            .getFilteredSelectedRowModel()
+            .rows.map(row => row.original)
+        onDelete?.(selectedRows)
+        setRowSelection({})
+    }, [onDelete])
+
+    // biome-ignore lint/correctness/useExhaustiveDependencies: trigger only on rowSelection change
+    const selectedRowCount = useMemo(
+        () => table.getFilteredSelectedRowModel().rows.length,
+        [rowSelection]
+    )
 
     return (
         <div className='space-y-4'>
@@ -392,75 +521,14 @@ export function DataTable<TData, TValue>({
                     <TableHeader>
                         {table.getHeaderGroups().map(headerGroup => (
                             <TableRow key={headerGroup.id}>
-                                {headerGroup.headers.map(header => {
-                                    const canSort =
-                                        header.column.getCanSort() &&
-                                        config.enableSorting
-
-                                    const renderHeaderContent = () => {
-                                        if (header.isPlaceholder) {
-                                            return null
-                                        }
-
-                                        if (canSort) {
-                                            return (
-                                                <button
-                                                    type='button'
-                                                    onClick={header.column.getToggleSortingHandler()}
-                                                    className='flex items-center hover:text-foreground text-left cursor-pointer select-none font-mono'
-                                                >
-                                                    {flexRender(
-                                                        header.column.columnDef
-                                                            .header,
-                                                        header.getContext()
-                                                    )}
-                                                    {renderSortIcon(
-                                                        header.column
-                                                    )}
-                                                </button>
-                                            )
-                                        }
-
-                                        return flexRender(
-                                            header.column.columnDef.header,
-                                            header.getContext()
-                                        )
-                                    }
-
-                                    const isSelectColumn =
-                                        header.column.id === 'select'
-
-                                    const handleHeaderClick = (
-                                        e: React.MouseEvent
-                                    ) => {
-                                        if (isSelectColumn) {
-                                            const target =
-                                                e.target as HTMLElement
-                                            if (
-                                                !target.closest(
-                                                    '[data-slot="checkbox"]'
-                                                )
-                                            ) {
-                                                table.toggleAllPageRowsSelected(
-                                                    !table.getIsAllPageRowsSelected()
-                                                )
-                                            }
-                                        }
-                                    }
-
-                                    return (
-                                        <TableHead
-                                            key={header.id}
-                                            className={cn(
-                                                isSelectColumn &&
-                                                    'sticky left-0 bg-background z-20 shadow-[2px_0_0_0_rgba(0,0,0,0.05)] cursor-pointer'
-                                            )}
-                                            onClick={handleHeaderClick}
-                                        >
-                                            {renderHeaderContent()}
-                                        </TableHead>
-                                    )
-                                })}
+                                {headerGroup.headers.map(header => (
+                                    <TableHeaderCell
+                                        key={header.id}
+                                        header={header}
+                                        config={config}
+                                        table={table}
+                                    />
+                                ))}
                             </TableRow>
                         ))}
                     </TableHeader>
@@ -468,7 +536,7 @@ export function DataTable<TData, TValue>({
                 </Table>
             </div>
 
-            {showPagination && data.length > 0 && (
+            {showPagination && totalPages > 0 && (
                 <div className='flex items-center justify-between py-4'>
                     <div className='flex items-center space-x-2 text-sm text-muted-foreground font-mono'>
                         <p>Rows per page</p>
@@ -503,8 +571,7 @@ export function DataTable<TData, TValue>({
 
                     <div className='flex flex-1 items-center justify-end space-x-6 lg:space-x-8 font-mono'>
                         <div className='flex w-[100px] items-center justify-center text-sm font-medium'>
-                            Page {table.getState().pagination.pageIndex + 1} of{' '}
-                            {table.getPageCount()}
+                            Page {currentPageIndex + 1} of {totalPages}
                         </div>
                         <Pagination className='mx-0 w-auto'>
                             <PaginationContent>
@@ -530,9 +597,9 @@ export function DataTable<TData, TValue>({
                                             <PaginationLink
                                                 href='#'
                                                 isActive={
-                                                    table.getState().pagination
-                                                        .pageIndex ===
-                                                    pageItem.value - 1
+                                                    currentPageIndex ===
+                                                    (pageItem.value as number) -
+                                                        1
                                                 }
                                                 onClick={e => {
                                                     e.preventDefault()
@@ -568,11 +635,11 @@ export function DataTable<TData, TValue>({
                 </div>
             )}
 
-            {table.getFilteredSelectedRowModel().rows.length > 0 && (
+            {selectedRowCount > 0 && (
                 <div className='flex items-center justify-between border border-border bg-muted/60 p-4 font-mono text-sm shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300 rounded-none mt-4'>
                     <div className='flex items-center gap-2'>
                         <span className='font-bold text-foreground text-base'>
-                            {table.getFilteredSelectedRowModel().rows.length}
+                            {selectedRowCount}
                         </span>
                         <span className='text-muted-foreground'>
                             items selected
@@ -582,15 +649,7 @@ export function DataTable<TData, TValue>({
                         <Button
                             variant='destructive'
                             size='xs'
-                            onClick={() => {
-                                const selectedRows = table
-                                    .getFilteredSelectedRowModel()
-                                    .rows.map(row => row.original)
-                                if (onDelete) {
-                                    onDelete(selectedRows)
-                                }
-                                setRowSelection({})
-                            }}
+                            onClick={handleDelete}
                             className='flex items-center gap-1.5 px-4 h-8 rounded-none'
                         >
                             <Trash className='h-4 w-4' />

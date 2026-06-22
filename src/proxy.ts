@@ -25,7 +25,7 @@ async function fetchAndCacheSession(
     try {
         const response = await fetch(`${BACKEND_URL}/api/auth/me`, {
             headers: {
-                Cookie: `${SESSION_COOKIE_NAME}=${sessionToken}; __Secure-better-auth.session_token=${sessionToken}; better-auth.session_token=${sessionToken}`
+                Cookie: `${SESSION_COOKIE_NAME}=${sessionToken}`
             },
             cache: 'no-store'
         })
@@ -70,10 +70,7 @@ function handleApiProxy(req: NextRequest, pathname: string) {
     const headers = new Headers(req.headers)
 
     if (sessionToken) {
-        headers.set(
-            'Cookie',
-            `${SESSION_COOKIE_NAME}=${sessionToken}; __Secure-better-auth.session_token=${sessionToken}; better-auth.session_token=${sessionToken}`
-        )
+        headers.set('Cookie', `${SESSION_COOKIE_NAME}=${sessionToken}`)
     }
 
     const backendUrl = BACKEND_URL?.endsWith('/')

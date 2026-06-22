@@ -1,12 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { DashboardTitle } from '@/components/dashboard/dashboard-title'
-import { DataTable } from '@/components/tables/data-table'
 import {
     columns,
     type Posyandu
-} from '@/components/tables/posyandus-column-table'
+} from '@/components/columns-table/posyandus-column-table'
+import { DashboardTitle } from '@/components/dashboard/dashboard-title'
+import { DataTable } from '@/components/tables/data-table'
 
 const mockPosyandus: Posyandu[] = [
     {

@@ -1,4 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { QueryKey } from '@tanstack/react-query'
+import {
+    keepPreviousData,
+    useMutation,
+    useQuery,
+    useQueryClient
+} from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import type { PaginatedResponse } from '@/types'
 import type { TrashItem, TrashQueryFilters } from '@/types/trash'
@@ -24,11 +30,17 @@ const typeEndpointMap: Record<TrashItem['type'], string> = {
     inventory: 'inventories'
 }
 
+export const trashKeys = {
+    all: ['trash'] as const,
+    lists: () => [...trashKeys.all, 'list'] as const,
+    list: (params: TrashQueryFilters) => [...trashKeys.lists(), params] as const
+}
+
 export function useTrash(params?: TrashQueryFilters) {
     const { page = 1, limit = 10, order = 'desc', type, search } = params || {}
 
     return useQuery<TrashResponse>({
-        queryKey: ['trash', { page, limit, order, type, search }],
+        queryKey: trashKeys.list({ page, limit, order, type, search }),
         queryFn: async () => {
             const queryParams = new URLSearchParams()
             queryParams.append('page', String(page))
@@ -49,7 +61,8 @@ export function useTrash(params?: TrashQueryFilters) {
             const result = await response.json()
             return result.data
         },
-        staleTime: 10 * 1000
+        staleTime: 5 * 60 * 1000,
+        placeholderData: keepPreviousData
     })
 }
 
@@ -59,7 +72,8 @@ export function useRestoreTrashItem() {
     return useMutation<
         boolean,
         Error,
-        { type: TrashItem['type']; publicId: string }
+        { type: TrashItem['type']; publicId: string },
+        { previousData: [readonly unknown[], unknown][] }
     >({
         mutationFn: async ({ type, publicId }) => {
             const response = await apiClient(
@@ -74,13 +88,37 @@ export function useRestoreTrashItem() {
             }
             return true
         },
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['trash'] })
-            queryClient.refetchQueries({ queryKey: ['trash'] })
+        onMutate: async ({ publicId }) => {
+            await queryClient.cancelQueries({ queryKey: trashKeys.lists() })
+            const previousData = queryClient.getQueriesData({
+                queryKey: trashKeys.lists()
+            })
+
+            queryClient.setQueriesData<TrashResponse>(
+                { queryKey: trashKeys.lists() },
+                old => {
+                    if (!old) return old
+                    return {
+                        ...old,
+                        data: old.data.filter(item => item.id !== publicId)
+                    }
+                }
+            )
+
+            return { previousData }
+        },
+        onError: (_err, _vars, context) => {
+            if (context?.previousData) {
+                for (const [key, data] of context.previousData) {
+                    queryClient.setQueryData(key as QueryKey, data)
+                }
+            }
+        },
+        onSettled: (_, __, variables) => {
+            queryClient.invalidateQueries({ queryKey: trashKeys.lists() })
             const entityKey = typeEndpointMap[variables.type]
             if (entityKey) {
                 queryClient.invalidateQueries({ queryKey: [entityKey] })
-                queryClient.refetchQueries({ queryKey: [entityKey] })
             }
         }
     })
@@ -92,7 +130,8 @@ export function useHardDeleteTrashItem() {
     return useMutation<
         boolean,
         Error,
-        { type: TrashItem['type']; publicId: string }
+        { type: TrashItem['type']; publicId: string },
+        { previousData: [readonly unknown[], unknown][] }
     >({
         mutationFn: async ({ type, publicId }) => {
             const endpoint = typeEndpointMap[type]
@@ -114,13 +153,40 @@ export function useHardDeleteTrashItem() {
             }
             return true
         },
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['trash'] })
-            queryClient.refetchQueries({ queryKey: ['trash'] })
+        onMutate: async ({ publicId }) => {
+            await queryClient.cancelQueries({ queryKey: trashKeys.lists() })
+            const previousData = queryClient.getQueriesData({
+                queryKey: trashKeys.lists()
+            })
+
+            queryClient.setQueriesData<TrashResponse>(
+                { queryKey: trashKeys.lists() },
+                old => {
+                    if (!old) return old
+                    return {
+                        ...old,
+                        data: old.data.filter(item => item.id !== publicId)
+                    }
+                }
+            )
+
+            return { previousData }
+        },
+        onError: (_err, _vars, context) => {
+            if (context?.previousData) {
+                for (const [key, data] of context.previousData) {
+                    queryClient.setQueryData(key as QueryKey, data)
+                }
+            }
+        },
+        onSettled: (_, __, variables) => {
+            queryClient.invalidateQueries({ queryKey: trashKeys.lists() })
             const entityKey = typeEndpointMap[variables.type]
             if (entityKey) {
-                queryClient.invalidateQueries({ queryKey: [entityKey] })
-                queryClient.refetchQueries({ queryKey: [entityKey] })
+                queryClient.invalidateQueries({ queryKey: [entityKey, 'list'] })
+                queryClient.removeQueries({
+                    queryKey: [entityKey, 'detail', variables.publicId]
+                })
             }
         }
     })

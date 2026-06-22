@@ -1,4 +1,4 @@
-import type { User } from '@/components/tables/users-column-table'
+import type { User } from '@/components/columns-table/users-column-table'
 
 export interface UserQueryParams {
     page?: number | string
