@@ -19,7 +19,7 @@ export async function apiClient(path: string, init?: RequestInit) {
             const forwardedFor = requestHeaders.get('x-forwarded-for')
 
             if (sessionToken) {
-                headersList.Cookie = `${SESSION_COOKIE_NAME}=${sessionToken}`
+                headersList.Cookie = `${SESSION_COOKIE_NAME}=${sessionToken}; __Secure-better-auth.session_token=${sessionToken}; better-auth.session_token=${sessionToken}`
             }
             if (origin) headersList.Origin = origin
             if (userAgent) headersList['User-Agent'] = userAgent

@@ -53,6 +53,16 @@ export function useLogin() {
         },
         onSuccess: data => {
             queryClient.setQueryData(['session'], data)
+            if (globalThis.window !== undefined) {
+                localStorage.setItem(
+                    'dashboard_last_activity',
+                    String(Date.now())
+                )
+                localStorage.setItem(
+                    'dashboard_last_activity_update',
+                    String(Date.now())
+                )
+            }
         }
     })
 }
@@ -73,6 +83,10 @@ export function useLogout() {
         },
         onSuccess: () => {
             queryClient.setQueryData(['session'], null)
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('dashboard_last_activity')
+                localStorage.removeItem('dashboard_last_activity_update')
+            }
             globalThis.location.href = '/'
         }
     })

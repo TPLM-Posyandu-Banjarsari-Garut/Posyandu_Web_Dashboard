@@ -1,24 +1,147 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import {
-    ALLOWED_ROLES,
-    BACKEND_URL,
-    SESSION_COOKIE_NAME
-} from '@/constants/constants'
+import { ALLOWED_ROLES, BACKEND_URL } from '@/constants/constants'
 import { redis } from '@/lib/redis'
+
+function extractHeaders(req: NextRequest): Record<string, string> {
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+    }
+    const origin = req.headers.get('origin')
+    if (origin) headers.Origin = origin
+    const userAgent = req.headers.get('user-agent')
+    if (userAgent) headers['User-Agent'] = userAgent
+    const forwardedFor = req.headers.get('x-forwarded-for')
+    if (forwardedFor) headers['X-Forwarded-For'] = forwardedFor
+    return headers
+}
+
+async function handleUnauthorizedRole(
+    setCookies: string[]
+): Promise<NextResponse> {
+    const cookieHeader = setCookies.join('; ')
+
+    await fetch(`${BACKEND_URL}/api/auth/sign-out`, {
+        method: 'POST',
+        headers: {
+            Cookie: cookieHeader
+        }
+    }).catch(() => {})
+
+    return NextResponse.json({ message: 'UNAUTHORIZED_ROLE' }, { status: 403 })
+}
+
+interface CookieOptions {
+    path?: string
+    httpOnly?: boolean
+    secure?: boolean
+    sameSite?: 'lax' | 'strict' | 'none'
+    maxAge?: number
+    expires?: Date
+}
+
+function parseCookieOptions(parts: string[]): CookieOptions {
+    const options: CookieOptions = {}
+    for (const part of parts) {
+        const trimmed = part.trim()
+        const eqIndex = trimmed.indexOf('=')
+        const key =
+            eqIndex === -1
+                ? trimmed.toLowerCase()
+                : trimmed.slice(0, eqIndex).trim().toLowerCase()
+        const val = eqIndex === -1 ? '' : trimmed.slice(eqIndex + 1).trim()
+
+        switch (key) {
+            case 'path':
+                options.path = val
+                break
+            case 'httponly':
+                options.httpOnly = true
+                break
+            case 'secure':
+                options.secure = true
+                break
+            case 'samesite':
+                options.sameSite = val.toLowerCase() as
+                    | 'lax'
+                    | 'strict'
+                    | 'none'
+                break
+            case 'max-age':
+                options.maxAge = Number(val)
+                break
+            case 'expires':
+                options.expires = new Date(val)
+                break
+        }
+    }
+    return options
+}
+
+function setCookiesOnResponse(res: NextResponse, cookies: string[]) {
+    for (const cookie of cookies) {
+        let modifiedCookie = cookie
+        if (process.env.NODE_ENV !== 'production') {
+            modifiedCookie = modifiedCookie.replace(/;\s*Secure/gi, '')
+            modifiedCookie = modifiedCookie.replaceAll('__Secure-', '')
+            modifiedCookie = modifiedCookie.replace(
+                /SameSite=None/gi,
+                'SameSite=Lax'
+            )
+        }
+
+        const cookieParts = modifiedCookie.split(';')
+        const mainPart = cookieParts[0]
+        const eqIndex = mainPart.indexOf('=')
+        if (eqIndex === -1) continue
+
+        const name = mainPart.slice(0, eqIndex).trim()
+        const value = mainPart.slice(eqIndex + 1).trim()
+        const options = parseCookieOptions(cookieParts.slice(1))
+
+        res.cookies.set(name, value, options)
+    }
+}
+
+interface LoginResponse {
+    message?: string
+    user?: {
+        role: string
+        [key: string]: unknown
+    }
+    session?: Record<string, unknown>
+}
+
+async function cacheSessionInRedis(
+    cookies: string[],
+    data: LoginResponse | null
+): Promise<void> {
+    if (!redis || !data?.user || !data?.session) return
+
+    const tokenCookie = cookies.find(c =>
+        c.includes('better-auth.session_token=')
+    )
+    if (!tokenCookie) return
+
+    const parts = tokenCookie.split(';')[0].split('=')
+    const sessionToken = parts[1]?.trim()
+    if (!sessionToken) return
+
+    const redisKey = `dashboard:session:${sessionToken}`
+    try {
+        await redis.set(
+            redisKey,
+            { session: data.session, user: data.user },
+            { ex: 5 * 60 }
+        )
+    } catch (err) {
+        console.error('Login Redis cache write error:', err)
+    }
+}
 
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json()
-
-        const headers: Record<string, string> = {
-            'Content-Type': 'application/json'
-        }
-        const origin = req.headers.get('origin')
-        if (origin) headers.Origin = origin
-        const userAgent = req.headers.get('user-agent')
-        if (userAgent) headers['User-Agent'] = userAgent
-        const forwardedFor = req.headers.get('x-forwarded-for')
-        if (forwardedFor) headers['X-Forwarded-For'] = forwardedFor
+        const headers = extractHeaders(req)
 
         const backendRes = await fetch(
             `${BACKEND_URL}/api/auth/sign-in/email`,
@@ -29,7 +152,9 @@ export async function POST(req: NextRequest) {
             }
         )
 
-        const data = await backendRes.json().catch(() => null)
+        const data = (await backendRes
+            .json()
+            .catch(() => null)) as LoginResponse | null
 
         if (!backendRes.ok) {
             return NextResponse.json(
@@ -39,27 +164,14 @@ export async function POST(req: NextRequest) {
         }
 
         if (!data?.user || !ALLOWED_ROLES.has(data.user.role)) {
-            const setCookies = backendRes.headers.getSetCookie()
-            const cookieHeader = setCookies.join('; ')
-
-            await fetch(`${BACKEND_URL}/api/auth/sign-out`, {
-                method: 'POST',
-                headers: {
-                    Cookie: cookieHeader
-                }
-            }).catch(() => {})
-
-            return NextResponse.json(
-                { message: 'UNAUTHORIZED_ROLE' },
-                { status: 403 }
+            return await handleUnauthorizedRole(
+                backendRes.headers.getSetCookie()
             )
         }
 
         const res = NextResponse.json(data, { status: 200 })
         const cookies = backendRes.headers.getSetCookie()
-        for (const cookie of cookies) {
-            res.headers.append('set-cookie', cookie)
-        }
+        setCookiesOnResponse(res, cookies)
 
         res.cookies.set('session_active', 'true', {
             path: '/',
@@ -69,26 +181,7 @@ export async function POST(req: NextRequest) {
             sameSite: 'lax'
         })
 
-        if (redis && data?.user && data?.session) {
-            const tokenCookie = cookies.find(c =>
-                c.startsWith(`${SESSION_COOKIE_NAME}=`)
-            )
-            if (tokenCookie) {
-                const sessionToken = tokenCookie.split(';')[0].split('=')[1]
-                if (sessionToken) {
-                    const redisKey = `dashboard:session:${sessionToken}`
-                    try {
-                        await redis.set(
-                            redisKey,
-                            { session: data.session, user: data.user },
-                            { ex: 5 * 60 }
-                        )
-                    } catch (err) {
-                        console.error('Login Redis cache write error:', err)
-                    }
-                }
-            }
-        }
+        await cacheSessionInRedis(cookies, data)
 
         return res
     } catch (error) {

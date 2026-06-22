@@ -25,7 +25,7 @@ async function fetchAndCacheSession(
     try {
         const response = await fetch(`${BACKEND_URL}/api/auth/me`, {
             headers: {
-                Cookie: `${SESSION_COOKIE_NAME}=${sessionToken}`
+                Cookie: `${SESSION_COOKIE_NAME}=${sessionToken}; __Secure-better-auth.session_token=${sessionToken}; better-auth.session_token=${sessionToken}`
             },
             cache: 'no-store'
         })
