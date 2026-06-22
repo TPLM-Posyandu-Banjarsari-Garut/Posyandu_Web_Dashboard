@@ -65,33 +65,37 @@ async function fetchAndCacheSession(
     }
 }
 
+function handleApiProxy(req: NextRequest, pathname: string) {
+    const sessionToken = req.cookies.get(SESSION_COOKIE_NAME)?.value
+    const headers = new Headers(req.headers)
+
+    if (sessionToken) {
+        headers.set(
+            'Cookie',
+            `${SESSION_COOKIE_NAME}=${sessionToken}; __Secure-better-auth.session_token=${sessionToken}; better-auth.session_token=${sessionToken}`
+        )
+    }
+
+    const backendUrl = BACKEND_URL?.endsWith('/')
+        ? BACKEND_URL.slice(0, -1)
+        : BACKEND_URL
+
+    return NextResponse.rewrite(
+        new URL(`${pathname}${req.nextUrl.search}`, backendUrl),
+        {
+            request: {
+                headers
+            }
+        }
+    )
+}
+
 export async function proxy(req: NextRequest) {
     const { pathname } = req.nextUrl
 
     // Proxy client-side API requests and inject the required session cookies
     if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth/')) {
-        const sessionToken = req.cookies.get(SESSION_COOKIE_NAME)?.value
-        const headers = new Headers(req.headers)
-
-        if (sessionToken) {
-            headers.set(
-                'Cookie',
-                `${SESSION_COOKIE_NAME}=${sessionToken}; __Secure-better-auth.session_token=${sessionToken}; better-auth.session_token=${sessionToken}`
-            )
-        }
-
-        const backendUrl = BACKEND_URL?.endsWith('/')
-            ? BACKEND_URL.slice(0, -1)
-            : BACKEND_URL
-
-        return NextResponse.rewrite(
-            new URL(`${pathname}${req.nextUrl.search}`, backendUrl),
-            {
-                request: {
-                    headers
-                }
-            }
-        )
+        return handleApiProxy(req, pathname)
     }
 
     const sessionToken = req.cookies.get(SESSION_COOKIE_NAME)?.value
@@ -99,19 +103,15 @@ export async function proxy(req: NextRequest) {
 
     if (sessionToken) {
         const redisKey = `dashboard:session:${sessionToken}`
-        const isCachedValid = await checkCachedSession(redisKey)
-        if (isCachedValid) {
-            hasSession = true
-        } else {
-            hasSession = await fetchAndCacheSession(sessionToken, redisKey)
-        }
+        hasSession =
+            (await checkCachedSession(redisKey)) ||
+            (await fetchAndCacheSession(sessionToken, redisKey))
     }
 
     if (pathname === '/') {
-        if (hasSession) {
-            return NextResponse.redirect(new URL('/dashboard', req.url))
-        }
-        return NextResponse.next()
+        return hasSession
+            ? NextResponse.redirect(new URL('/dashboard', req.url))
+            : NextResponse.next()
     }
 
     if (pathname === '/unauthorized' && hasSession) {

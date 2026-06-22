@@ -75,6 +75,7 @@ interface DataTableProps<TData, TValue> extends ServerPaginationProps {
     config?: DataTableConfig
     onRefresh?: () => void
     onDelete?: (selectedItems: TData[]) => void
+    deleteLabel?: string
     onRowClick?: (row: TData) => void
     toolbarLeft?: React.ReactNode
 }
@@ -91,6 +92,7 @@ export function DataTable<TData, TValue>({
     onPaginationChange,
     onRefresh,
     onDelete,
+    deleteLabel,
     onRowClick,
     toolbarLeft
 }: Readonly<DataTableProps<TData, TValue>>) {
@@ -200,8 +202,15 @@ export function DataTable<TData, TValue>({
                     const isSelectColumn = cell.column.id === 'select'
                     const isActionsColumn = cell.column.id === 'actions'
 
-                    const handleCellClick = () => {
-                        if (isSelectColumn || isActionsColumn) {
+                    const handleCellClick = (e: React.MouseEvent) => {
+                        if (isSelectColumn) {
+                            const target = e.target as HTMLElement
+                            if (!target.closest('[data-slot="checkbox"]')) {
+                                row.toggleSelected()
+                            }
+                            return
+                        }
+                        if (isActionsColumn) {
                             return
                         }
                         onRowClick?.(row.original)
@@ -213,7 +222,7 @@ export function DataTable<TData, TValue>({
                             onClick={handleCellClick}
                             className={cn(
                                 isSelectColumn &&
-                                    'sticky left-0 bg-background z-10 shadow-[2px_0_0_0_rgba(0,0,0,0.05)]',
+                                    'sticky left-0 bg-background z-10 shadow-[2px_0_0_0_rgba(0,0,0,0.05)] cursor-pointer',
                                 isSelectColumn &&
                                     'group-odd/row:bg-muted/30 group-hover/row:bg-muted/50 group-data-[state=selected]/row:bg-muted',
                                 onRowClick &&
@@ -420,13 +429,33 @@ export function DataTable<TData, TValue>({
 
                                     const isSelectColumn =
                                         header.column.id === 'select'
+
+                                    const handleHeaderClick = (
+                                        e: React.MouseEvent
+                                    ) => {
+                                        if (isSelectColumn) {
+                                            const target =
+                                                e.target as HTMLElement
+                                            if (
+                                                !target.closest(
+                                                    '[data-slot="checkbox"]'
+                                                )
+                                            ) {
+                                                table.toggleAllPageRowsSelected(
+                                                    !table.getIsAllPageRowsSelected()
+                                                )
+                                            }
+                                        }
+                                    }
+
                                     return (
                                         <TableHead
                                             key={header.id}
                                             className={cn(
                                                 isSelectColumn &&
-                                                    'sticky left-0 bg-background z-20 shadow-[2px_0_0_0_rgba(0,0,0,0.05)]'
+                                                    'sticky left-0 bg-background z-20 shadow-[2px_0_0_0_rgba(0,0,0,0.05)] cursor-pointer'
                                             )}
+                                            onClick={handleHeaderClick}
                                         >
                                             {renderHeaderContent()}
                                         </TableHead>
@@ -565,7 +594,7 @@ export function DataTable<TData, TValue>({
                             className='flex items-center gap-1.5 px-4 h-8 rounded-none'
                         >
                             <Trash className='h-4 w-4' />
-                            Move to Trash
+                            {deleteLabel ?? 'Move to Trash'}
                         </Button>
                     </div>
                 </div>

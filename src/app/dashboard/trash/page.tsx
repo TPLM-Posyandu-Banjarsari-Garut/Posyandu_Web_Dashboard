@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { DashboardTitle } from '@/components/dashboard/dashboard-title'
 import { DataTable } from '@/components/tables/data-table'
-import { columns } from '@/components/tables/trash-column-table'
+import { getColumns } from '@/components/tables/trash-column-table'
 import { Input } from '@/components/ui/input'
 import {
     Select,
@@ -14,7 +14,7 @@ import {
     SelectValue
 } from '@/components/ui/select'
 import { typeOptions } from '@/constants/constants'
-import { useTrash } from '@/hooks/use-trash'
+import { useHardDeleteTrashItem, useTrash } from '@/hooks/use-trash'
 import type { TrashItem } from '@/types/trash'
 
 export default function TrashPage() {
@@ -25,6 +25,8 @@ export default function TrashPage() {
 
     const typeFilter =
         selectedType === 'all' ? undefined : (selectedType as TrashItem['type'])
+
+    const hardDeleteMutation = useHardDeleteTrashItem()
 
     const {
         data: trashResponse,
@@ -48,9 +50,31 @@ export default function TrashPage() {
         }
     }
 
+    const handleBulkHardDelete = async (selectedItems: TrashItem[]) => {
+        try {
+            await Promise.all(
+                selectedItems.map(item =>
+                    hardDeleteMutation.mutateAsync({
+                        type: item.type,
+                        publicId: item.id
+                    })
+                )
+            )
+            toast.success(
+                `Successfully permanently deleted ${selectedItems.length} items`
+            )
+            await refetch()
+        } catch (err) {
+            const error = err as Error
+            toast.error(error.message || 'Failed to permanently delete items')
+        }
+    }
+
     const totalPages = trashResponse?.meta.total_pages
         ? Number(trashResponse.meta.total_pages)
         : 1
+
+    const columns = getColumns(handleRefresh)
 
     return (
         <>
@@ -66,6 +90,8 @@ export default function TrashPage() {
                     isLoading={isLoading}
                     isFetching={isFetching}
                     onRefresh={handleRefresh}
+                    onDelete={handleBulkHardDelete}
+                    deleteLabel='Delete Permanently'
                     pageCount={totalPages}
                     pagination={{
                         pageIndex: page - 1,

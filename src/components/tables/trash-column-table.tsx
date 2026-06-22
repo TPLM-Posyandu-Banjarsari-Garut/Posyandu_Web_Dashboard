@@ -20,7 +20,13 @@ import {
 import { useHardDeleteTrashItem, useRestoreTrashItem } from '@/hooks/use-trash'
 import type { TrashItem } from '@/types/trash'
 
-function ActionCell({ item }: Readonly<{ item: TrashItem }>) {
+function ActionCell({
+    item,
+    onRefresh
+}: Readonly<{
+    item: TrashItem
+    onRefresh?: () => void
+}>) {
     const restoreMutation = useRestoreTrashItem()
     const hardDeleteMutation = useHardDeleteTrashItem()
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -32,6 +38,7 @@ function ActionCell({ item }: Readonly<{ item: TrashItem }>) {
                 publicId: item.id
             })
             toast.success(`Successfully restored ${item.type} "${item.name}"`)
+            onRefresh?.()
         } catch (err) {
             const error = err as Error
             toast.error(error.message || 'Failed to restore item')
@@ -47,6 +54,7 @@ function ActionCell({ item }: Readonly<{ item: TrashItem }>) {
             toast.success(
                 `Successfully permanently deleted ${item.type} "${item.name}"`
             )
+            onRefresh?.()
         } catch (err) {
             const error = err as Error
             toast.error(error.message || 'Failed to permanently delete item')
@@ -107,7 +115,7 @@ function ActionCell({ item }: Readonly<{ item: TrashItem }>) {
     )
 }
 
-export const columns: ColumnDef<TrashItem>[] = [
+export const getColumns = (onRefresh?: () => void): ColumnDef<TrashItem>[] => [
     {
         id: 'select',
         header: ({ table }) => (
@@ -208,6 +216,8 @@ export const columns: ColumnDef<TrashItem>[] = [
     },
     {
         id: 'actions',
-        cell: ({ row }) => <ActionCell item={row.original} />
+        cell: ({ row }) => (
+            <ActionCell item={row.original} onRefresh={onRefresh} />
+        )
     }
 ]
