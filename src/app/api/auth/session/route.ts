@@ -2,6 +2,113 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { BACKEND_URL, SESSION_COOKIE_NAME } from '@/constants/constants'
 import { redis } from '@/lib/redis'
 
+interface CookieOptions {
+    path?: string
+    httpOnly?: boolean
+    secure?: boolean
+    sameSite?: 'lax' | 'strict' | 'none'
+    maxAge?: number
+    expires?: Date
+}
+
+function parseCookieOptions(parts: string[]): CookieOptions {
+    const options: CookieOptions = {}
+    for (const part of parts) {
+        const trimmed = part.trim()
+        const eqIndex = trimmed.indexOf('=')
+        const key =
+            eqIndex === -1
+                ? trimmed.toLowerCase()
+                : trimmed.slice(0, eqIndex).trim().toLowerCase()
+        const val = eqIndex === -1 ? '' : trimmed.slice(eqIndex + 1).trim()
+
+        switch (key) {
+            case 'path':
+                options.path = val
+                break
+            case 'httponly':
+                options.httpOnly = true
+                break
+            case 'secure':
+                options.secure = true
+                break
+            case 'samesite':
+                options.sameSite = val.toLowerCase() as
+                    | 'lax'
+                    | 'strict'
+                    | 'none'
+                break
+            case 'max-age':
+                options.maxAge = Number(val)
+                break
+            case 'expires':
+                options.expires = new Date(val)
+                break
+        }
+    }
+    return options
+}
+
+function setCookiesOnResponse(res: NextResponse, cookies: string[]) {
+    for (const cookie of cookies) {
+        let modifiedCookie = cookie
+        if (process.env.NODE_ENV !== 'production') {
+            modifiedCookie = modifiedCookie.replace(/;\s*Secure/gi, '')
+            modifiedCookie = modifiedCookie.replaceAll('__Secure-', '')
+            modifiedCookie = modifiedCookie.replace(
+                /SameSite=None/gi,
+                'SameSite=Lax'
+            )
+        }
+
+        const cookieParts = modifiedCookie.split(';')
+        const mainPart = cookieParts[0]
+        const eqIndex = mainPart.indexOf('=')
+        if (eqIndex === -1) continue
+
+        const name = mainPart.slice(0, eqIndex).trim()
+        const value = mainPart.slice(eqIndex + 1).trim()
+        const options = parseCookieOptions(cookieParts.slice(1))
+
+        res.cookies.set(name, value, options)
+    }
+}
+
+async function getCachedSession(
+    redisKey: string,
+    forceRefresh: boolean
+): Promise<unknown> {
+    if (!redis || forceRefresh) return null
+    try {
+        const cached = await redis.get(redisKey)
+        if (cached) return cached
+    } catch (err) {
+        console.error('API session Redis read error:', err)
+    }
+    return null
+}
+
+async function deleteCachedSession(redisKey: string): Promise<void> {
+    if (!redis) return
+    try {
+        await redis.del(redisKey)
+    } catch (err) {
+        console.error('API session Redis delete error:', err)
+    }
+}
+
+async function cacheSession(
+    redisKey: string,
+    sessionData: unknown
+): Promise<void> {
+    if (!redis || !sessionData) return
+    try {
+        await redis.set(redisKey, sessionData, { ex: 5 * 60 })
+    } catch (err) {
+        console.error('API session Redis write error:', err)
+    }
+}
+
 export async function GET(req: NextRequest) {
     try {
         const sessionToken = req.cookies.get(SESSION_COOKIE_NAME)?.value
@@ -13,15 +120,9 @@ export async function GET(req: NextRequest) {
         const forceRefresh = searchParams.get('refresh') === 'true'
         const redisKey = `dashboard:session:${sessionToken}`
 
-        if (redis && !forceRefresh) {
-            try {
-                const cached = await redis.get(redisKey)
-                if (cached) {
-                    return NextResponse.json(cached)
-                }
-            } catch (err) {
-                console.error('API session Redis read error:', err)
-            }
+        const cached = await getCachedSession(redisKey, forceRefresh)
+        if (cached) {
+            return NextResponse.json(cached)
         }
 
         const response = await fetch(`${BACKEND_URL}/api/auth/me`, {
@@ -32,84 +133,17 @@ export async function GET(req: NextRequest) {
         })
 
         if (!response.ok) {
-            if (redis) {
-                try {
-                    await redis.del(redisKey)
-                } catch (err) {
-                    console.error('API session Redis delete error:', err)
-                }
-            }
+            await deleteCachedSession(redisKey)
             return NextResponse.json(null)
         }
 
         const resData = await response.json()
         const sessionData = resData?.data || resData
 
-        if (sessionData && redis) {
-            try {
-                await redis.set(redisKey, sessionData, { ex: 5 * 60 })
-            } catch (err) {
-                console.error('API session Redis write error:', err)
-            }
-        }
+        await cacheSession(redisKey, sessionData)
 
         const res = NextResponse.json(sessionData)
-
-        // Forward set-cookie headers (session token updates) to browser
-        const setCookies = response.headers.getSetCookie()
-        for (const cookie of setCookies) {
-            let modifiedCookie = cookie
-            if (process.env.NODE_ENV !== 'production') {
-                modifiedCookie = modifiedCookie.replace(/;\s*Secure/gi, '')
-                modifiedCookie = modifiedCookie.replaceAll('__Secure-', '')
-                modifiedCookie = modifiedCookie.replace(
-                    /SameSite=None/gi,
-                    'SameSite=Lax'
-                )
-            }
-
-            const cookieParts = modifiedCookie.split(';')
-            const mainPart = cookieParts[0]
-            const eqIndex = mainPart.indexOf('=')
-            if (eqIndex !== -1) {
-                const name = mainPart.slice(0, eqIndex).trim()
-                const value = mainPart.slice(eqIndex + 1).trim()
-
-                const options: {
-                    path?: string
-                    httpOnly?: boolean
-                    secure?: boolean
-                    sameSite?: 'lax' | 'strict' | 'none'
-                    maxAge?: number
-                    expires?: Date
-                } = {}
-
-                for (let i = 1; i < cookieParts.length; i++) {
-                    const part = cookieParts[i].trim()
-                    const partEqIndex = part.indexOf('=')
-                    const key =
-                        partEqIndex === -1
-                            ? part.toLowerCase()
-                            : part.slice(0, partEqIndex).trim().toLowerCase()
-                    const val =
-                        partEqIndex === -1
-                            ? ''
-                            : part.slice(partEqIndex + 1).trim()
-
-                    if (key === 'path') options.path = val
-                    else if (key === 'httponly') options.httpOnly = true
-                    else if (key === 'secure') options.secure = true
-                    else if (key === 'samesite')
-                        options.sameSite = val.toLowerCase() as
-                            | 'lax'
-                            | 'strict'
-                            | 'none'
-                    else if (key === 'max-age') options.maxAge = Number(val)
-                    else if (key === 'expires') options.expires = new Date(val)
-                }
-                res.cookies.set(name, value, options)
-            }
-        }
+        setCookiesOnResponse(res, response.headers.getSetCookie())
 
         return res
     } catch (error) {
