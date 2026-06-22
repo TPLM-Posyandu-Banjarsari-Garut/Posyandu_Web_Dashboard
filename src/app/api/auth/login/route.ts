@@ -1,5 +1,10 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { ALLOWED_ROLES, BACKEND_URL } from '@/constants/constants'
+import {
+    ALLOWED_ROLES,
+    BACKEND_URL,
+    SESSION_COOKIE_NAME
+} from '@/constants/constants'
+import { redis } from '@/lib/redis'
 
 export async function POST(req: NextRequest) {
     try {
@@ -54,6 +59,27 @@ export async function POST(req: NextRequest) {
         const cookies = backendRes.headers.getSetCookie()
         for (const cookie of cookies) {
             res.headers.append('set-cookie', cookie)
+        }
+
+        if (redis && data?.user && data?.session) {
+            const tokenCookie = cookies.find(c =>
+                c.startsWith(`${SESSION_COOKIE_NAME}=`)
+            )
+            if (tokenCookie) {
+                const sessionToken = tokenCookie.split(';')[0].split('=')[1]
+                if (sessionToken) {
+                    const redisKey = `dashboard:session:${sessionToken}`
+                    try {
+                        await redis.set(
+                            redisKey,
+                            { session: data.session, user: data.user },
+                            { ex: 5 * 60 }
+                        )
+                    } catch (err) {
+                        console.error('Login Redis cache write error:', err)
+                    }
+                }
+            }
         }
 
         return res

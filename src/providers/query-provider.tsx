@@ -63,7 +63,7 @@ export default function QueryProvider({
                         )
                 } else if (idleTime >= THREE_AND_A_HALF_HOURS_MS) {
                     localStorage.removeItem('dashboard_last_activity')
-                    window.location.href = '/'
+                    window.location.href = '/unauthorized'
                     return
                 }
             }

@@ -48,9 +48,9 @@ export async function apiClient(path: string, init?: RequestInit) {
     if (
         !isServer &&
         response.status === 401 &&
-        globalThis.location.pathname !== '/'
+        globalThis.location.pathname !== '/unauthorized'
     ) {
-        globalThis.location.href = '/'
+        globalThis.location.href = '/unauthorized'
     }
 
     return response

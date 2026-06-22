@@ -89,7 +89,7 @@ export async function proxy(req: NextRequest) {
     }
 
     if (!hasSession) {
-        return NextResponse.redirect(new URL('/', req.url))
+        return NextResponse.redirect(new URL('/unauthorized', req.url))
     }
 
     return NextResponse.next()

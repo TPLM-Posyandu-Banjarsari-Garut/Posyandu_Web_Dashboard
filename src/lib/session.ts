@@ -80,7 +80,7 @@ export async function checkSession(): Promise<SessionData> {
     const sessionToken = cookieStore.get(SESSION_COOKIE_NAME)?.value
 
     if (!sessionToken) {
-        redirect('/')
+        redirect('/unauthorized')
     }
 
     const redisKey = `dashboard:session:${sessionToken}`
@@ -92,7 +92,7 @@ export async function checkSession(): Promise<SessionData> {
 
     const sessionData = await fetchSessionFromBackend(sessionToken)
     if (!sessionData) {
-        redirect('/')
+        redirect('/unauthorized')
     }
 
     await cacheSession(redisKey, sessionData)
